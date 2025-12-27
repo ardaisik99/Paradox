@@ -1,0 +1,94 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #222; /* Kenardaki boşluklar koyu renk olsun */
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+}
+
+/* OYUNU TELEFON FORMATINA SABİTLEYEN KUTU */
+#game-container {
+    position: relative;
+    
+    /* En boy oranını 9:16 (1080x1920) yapıyoruz */
+    width: 100%;
+    height: 100%;
+    max-width: 56.25vh; /* Yüksekliğe göre genişliği ayarlar (9/16 = 0.5625) */
+    
+    background-color: #000;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* SKOR TABLOSU */
+#scoreBoard {
+    position: absolute;
+    top: 2%;
+    left: 5%;
+    /* Yazı boyutunu oyunun genişliğine göre ayarla (Responsive) */
+    font-size: 6vmin; 
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px #000;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* OYUN BİTTİ EKRANI */
+#gameOverScreen {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    /* Kutunun genişliği oyun alanının %80'i olsun */
+    width: 80%; 
+    
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    z-index: 20;
+    border: 3px solid #fff;
+    box-sizing: border-box;
+}
+
+/* Yazı Boyutları (Responsive - vmin kullanarak ekran küçülünce küçülür) */
+#gameOverScreen h1 {
+    font-size: 8vmin;
+    margin: 0 0 10px 0;
+}
+
+#gameOverScreen p {
+    font-size: 6vmin;
+    margin: 10px 0;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 5vmin; /* Buton yazısı da ölçeklensin */
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #ff9800;
+    border: none;
+    color: white;
+    border-radius: 10px;
+    margin-top: 20px;
+    width: 80%; /* Buton genişliği */
+}
+
+button:active {
+    background-color: #e68900;
+}
