@@ -3,22 +3,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // UI Elementleri
+    // UI Elements
     const scoreValElement = document.getElementById('scoreValue');
     const gameOverScreen = document.getElementById('gameOverScreen');
     const finalScoreElement = document.getElementById('finalScore');
     const loadingScreen = document.getElementById('loadingScreen');
     const loaderSpinner = document.getElementById('loaderSpinner');
     const loadingText = document.getElementById('loadingText');
+    const startButtonsGroup = document.getElementById('startButtonsGroup'); // Buton Grubu
     const startButton = document.getElementById('startButton');
+    const startSettingsBtn = document.getElementById('startSettingsBtn'); // Yeni Ayarlar Butonu
     
-    // Yeni UI Elementleri
+    // UI - Menüler
     const hudLayer = document.getElementById('hudLayer');
     const menuBtn = document.getElementById('menuBtn');
     const pauseMenu = document.getElementById('pauseMenu');
+    const mainSettingsMenu = document.getElementById('mainSettingsMenu'); // Yeni Menü
+    const closeMainSettingsBtn = document.getElementById('closeMainSettingsBtn');
     const resumeBtn = document.getElementById('resumeBtn');
-    const homeBtn = document.getElementById('homeBtn'); // Pause menüsündeki
-    const goHomeBtn = document.getElementById('goHomeBtn'); // Game Over ekranındaki
+    const homeBtn = document.getElementById('homeBtn');
+    const goHomeBtn = document.getElementById('goHomeBtn');
+    
+    // Ayar Toggle'ları (Hem Ana Menü hem Oyun İçi)
+    const mainMusicToggle = document.getElementById('mainMusicToggle');
+    const mainDarkModeToggle = document.getElementById('mainDarkModeToggle');
+    const gameMusicToggle = document.getElementById('gameMusicToggle');
+    const gameDarkModeToggle = document.getElementById('gameDarkModeToggle');
 
     if (!gameOverScreen || !scoreValElement || !loadingScreen) {
         console.error("ERROR: HTML elements not found!");
@@ -32,6 +42,42 @@ document.addEventListener('DOMContentLoaded', () => {
     bgMusic.volume = 0.5; 
     bgMusic.load();
 
+    // --- AYARLARI SENKRONİZE ETME FONKSİYONLARI ---
+    
+    // Müzik Değişince
+    function toggleMusic(isMuted) {
+        bgMusic.muted = isMuted;
+        // İki toggle'ı da güncelle ki senkron kalsınlar
+        mainMusicToggle.checked = !isMuted;
+        gameMusicToggle.checked = !isMuted;
+        
+        // Eğer müzik açıldıysa ve oyun oynanıyorsa veya menüdeysek çalmaya çalış
+        if (!isMuted && (gameRunning || !gameRunning)) {
+             bgMusic.play().catch(e => {});
+        }
+    }
+
+    // Dark Mode Değişince
+    function toggleDarkMode(isDark) {
+        if (isDark) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+        // İki toggle'ı da güncelle
+        mainDarkModeToggle.checked = isDark;
+        gameDarkModeToggle.checked = isDark;
+    }
+
+    // Event Listeners for Main Menu Settings
+    mainMusicToggle.addEventListener('change', () => toggleMusic(!mainMusicToggle.checked));
+    mainDarkModeToggle.addEventListener('change', () => toggleDarkMode(mainDarkModeToggle.checked));
+
+    // Event Listeners for Game Pause Menu Settings
+    gameMusicToggle.addEventListener('change', () => toggleMusic(!gameMusicToggle.checked));
+    gameDarkModeToggle.addEventListener('change', () => toggleDarkMode(gameDarkModeToggle.checked));
+
+
     // --- RESİMLER ---
     const images = {};
     const imageSources = {
@@ -40,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         pie: 'assets/turta.png',
         ground: 'assets/zemin.png'
     };
-
     const eatFrameCount = 2; 
     const eatImages = []; 
 
@@ -50,21 +95,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkAllAssetsLoaded() {
         loadedCount++;
         if (loadedCount === totalImages) {
-            // Yükleme bitti
             loaderSpinner.style.display = 'none';
             loadingText.style.display = 'none';
-            startButton.style.display = 'block'; 
+            // Buton Grubunu Göster (Start + Settings)
+            startButtonsGroup.style.display = 'flex'; 
         }
     }
 
-    // --- OYUN DURUM DEĞİŞKENLERİ ---
+    // --- DEĞİŞKENLER ---
     let gameRunning = false; 
-    let isPaused = false; // Yeni: Duraklatma durumu
+    let isPaused = false; 
     let score = 0;
     let lastTime = 0;
     let spawnTimer = 0;
-
-    // --- HIZ ---
     let dropSpeedPPS = 400; 
     let spawnInterval = 1500; 
 
@@ -76,81 +119,95 @@ document.addEventListener('DOMContentLoaded', () => {
         y: canvas.height - 380, 
         speedPPS: 1200,
         facingRight: true,
-        isEating: false,      
-        frameX: 0,            
-        frameTimer: 0,        
-        frameInterval: 150,    
-        maxFrames: eatFrameCount 
+        isEating: false, frameX: 0, frameTimer: 0, frameInterval: 150, maxFrames: eatFrameCount 
     };
-
     let pies = [];
     let leftPressed = false;
     let rightPressed = false;
 
-    // --- BUTON OLAYLARI ---
+    // --- MENÜ YÖNETİMİ ---
 
-    // 1. Oyuna Başla
+    // 1. Ana Menü Ayarları Aç
+    startSettingsBtn.addEventListener('click', () => {
+        startButtonsGroup.style.display = 'none'; // Başla butonlarını gizle
+        mainSettingsMenu.style.display = 'flex';  // Ayar menüsünü aç
+    });
+
+    // 2. Ana Menü Ayarları Kapat (Back)
+    closeMainSettingsBtn.addEventListener('click', () => {
+        mainSettingsMenu.style.display = 'none';
+        startButtonsGroup.style.display = 'flex'; // Geri dönünce butonları göster
+    });
+
+    // 3. Oyuna Başla
     startButton.addEventListener('click', () => {
-        bgMusic.play().catch((err) => console.warn(err));
+        if (!bgMusic.muted) {
+            bgMusic.play().catch((err) => console.warn(err));
+        }
         loadingScreen.style.display = 'none';
-        hudLayer.style.display = 'block'; // Skor ve Menü butonunu göster
+        hudLayer.style.display = 'flex';
         gameRunning = true;
         isPaused = false;
         requestAnimationFrame(update);
     });
 
-    // 2. Menüyü Aç (Pause)
+    // 4. Oyun İçi Menü (Pause)
     menuBtn.addEventListener('click', () => {
         if (!gameRunning) return;
         isPaused = true;
         pauseMenu.style.display = 'flex';
-        bgMusic.pause(); // Müziği durdur
     });
 
-    // 3. Devam Et (Resume)
+    // 5. Resume
     resumeBtn.addEventListener('click', () => {
         isPaused = false;
         pauseMenu.style.display = 'none';
-        bgMusic.play().catch(e => {}); // Müziği devam ettir
-        lastTime = 0; // Zaman farkını sıfırla ki atlama yapmasın
+        lastTime = 0; 
         requestAnimationFrame(update);
     });
 
-    // 4. Ana Menüye Dön (Home)
+    // 6. Ana Menüye Dön
     const goToMainMenu = () => {
-        // Her şeyi sıfırla
         gameRunning = false;
         isPaused = false;
+        
         score = 0;
+        dropSpeedPPS = 400; 
+        spawnInterval = 1500;
+        spawnTimer = 0;
+        
         scoreValElement.innerText = "0";
         pies = [];
-        
-        // Ekranları ayarla
+        player.x = (canvas.width / 2) - (player.width / 2);
+
         hudLayer.style.display = 'none';
         pauseMenu.style.display = 'none';
         gameOverScreen.style.display = 'none';
-        loadingScreen.style.display = 'flex'; // Ana ekranı göster
         
-        // Butonları resetle
-        startButton.style.display = 'block';
-        loaderSpinner.style.display = 'none';
-        loadingText.style.display = 'none';
-
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
+        loadingScreen.style.display = 'flex'; 
+        startButtonsGroup.style.display = 'flex'; // Butonları göster
+        
+        // Eğer müzik ayarlardan kapalıysa başlatma, açıksa devam et
+        if (bgMusic.muted) {
+            bgMusic.pause();
+        } else {
+             bgMusic.currentTime = 0; // Başa sar
+             // Ana menüde de çalsın istersek play, istemezsek pause
+             // Genelde ana menüde müzik çalar
+             bgMusic.play().catch(e => {});
+        }
     };
 
     homeBtn.addEventListener('click', goToMainMenu);
     goHomeBtn.addEventListener('click', goToMainMenu);
 
-    // --- RESİM YÜKLEME ---
+    // --- STANDART FONKSİYONLAR ---
     for (let key in imageSources) {
         images[key] = new Image();
         images[key].onload = checkAllAssetsLoaded;
         images[key].onerror = checkAllAssetsLoaded;
         images[key].src = imageSources[key];
     }
-
     for (let i = 0; i < eatFrameCount; i++) {
         const img = new Image();
         img.onload = checkAllAssetsLoaded;
@@ -159,11 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
         eatImages.push(img);
     }
 
-    // --- EKRAN ---
     canvas.width = 1080;
     canvas.height = 1920;
 
-    // --- KONTROLLER ---
     document.addEventListener('keydown', (e) => {
         if(e.key === 'ArrowLeft') leftPressed = true;
         if(e.key === 'ArrowRight') rightPressed = true;
@@ -172,7 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(e.key === 'ArrowLeft') leftPressed = false;
         if(e.key === 'ArrowRight') rightPressed = false;
     });
-
     document.addEventListener('touchstart', handleTouch, {passive: false});
     document.addEventListener('touchmove', handleTouch, {passive: false});
     document.addEventListener('touchend', () => {
@@ -182,17 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleTouch(e) {
         if(e.type === 'touchmove') e.preventDefault(); 
-        
-        // Pause durumunda dokunmatik çalışmasın
         if (!gameRunning || isPaused) return;
 
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width; 
         const touchX = (e.touches[0].clientX - rect.left) * scaleX;
 
-        // Menü butonuna denk geliyorsa (Basit kontrol)
-        // (Aslında DOM butonu üstte olduğu için bu koda girmeyebilir ama garanti olsun)
         if (e.target === menuBtn || menuBtn.contains(e.target)) return;
+        if (e.target.closest('.settings-box')) return;
 
         if (touchX < canvas.width / 2) {
             leftPressed = true;
@@ -207,20 +258,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const size = 160; 
         const x = Math.random() * (canvas.width - size);
         pies.push({
-            x: x,
-            y: -150, 
-            size: size,
+            x: x, y: -150, size: size,
             speedPPS: dropSpeedPPS + Math.random() * 200,
-            angle: 0, 
-            rotationSpeed: (Math.random() - 0.5) * 10 
+            angle: 0, rotationSpeed: (Math.random() - 0.5) * 10 
         });
     }
 
     function update(timestamp) {
-        if (!gameRunning) return;
-        
-        // Eğer Pause basıldıysa döngüyü kır ama requestAnimationFrame çağırma
-        if (isPaused) return;
+        if (!gameRunning || isPaused) return;
 
         if (!lastTime) lastTime = timestamp;
         const deltaTime = (timestamp - lastTime) / 1000; 
@@ -231,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Animasyon
         if (player.isEating) {
             player.frameTimer += deltaTime * 1000;
             if (player.frameTimer > player.frameInterval) {
@@ -244,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Hareket
         if (leftPressed && player.x > 0) {
             player.x -= player.speedPPS * deltaTime;
             player.facingRight = false;
@@ -253,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
             player.x += player.speedPPS * deltaTime;
             player.facingRight = true;
         }
-        
         player.y = canvas.height - 450; 
 
         spawnTimer += deltaTime * 1000; 
@@ -262,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
             spawnTimer = 0; 
         }
 
-        // Turtalar
         for (let i = 0; i < pies.length; i++) {
             let p = pies[i];
             p.y += p.speedPPS * deltaTime;
@@ -279,7 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ) {
                 score++;
                 scoreValElement.innerText = score;
-                
                 pies.splice(i, 1);
                 i--;
 
@@ -296,7 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameOver();
             }
         }
-
         draw();
         requestAnimationFrame(update);
     }
@@ -314,7 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save(); 
             ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
             if (!player.facingRight) ctx.scale(-1, 1);
-            
             if (player.isEating) {
                 const currentEatImage = eatImages[player.frameX];
                 if (currentEatImage && currentEatImage.complete) {
@@ -345,8 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameRunning = false;
         bgMusic.pause();
         bgMusic.currentTime = 0; 
-        
-        hudLayer.style.display = 'none'; // Skor ve menü butonunu gizle
+        hudLayer.style.display = 'none'; 
         if(gameOverScreen) gameOverScreen.style.display = 'flex';
         if(finalScoreElement) finalScoreElement.innerText = score;
     }
@@ -361,11 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
         player.facingRight = true; 
         player.isEating = false; 
         player.frameX = 0;
-        
-        bgMusic.play().catch(e => console.log(e));
+        player.x = (canvas.width / 2) - (player.width / 2);
+
+        if (!bgMusic.muted) {
+             bgMusic.play().catch(e => console.log(e));
+        }
 
         scoreValElement.innerText = "0";
-        hudLayer.style.display = 'block'; // Skoru geri aç
+        hudLayer.style.display = 'flex'; 
         if(gameOverScreen) gameOverScreen.style.display = 'none';
         
         gameRunning = true;

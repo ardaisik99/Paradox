@@ -29,27 +29,79 @@
                 <p id="loadingText">LOADING...</p>
             </div>
 
-            <button id="startButton" class="game-btn start-btn" style="display: none;">TAP TO START ▶</button>
+            <div id="startButtonsGroup" style="display: none; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <button id="startButton" class="game-btn start-btn">TAP TO START ▶</button>
+                <button id="startSettingsBtn" class="game-btn settings-btn">SETTINGS ⚙️</button>
+            </div>
+        </div>
+
+        <div id="mainSettingsMenu" class="ui-panel" style="display: none; z-index: 200;">
+            <h2 class="menu-title">SETTINGS</h2>
+            
+            <div class="settings-box">
+                <div class="setting-item">
+                    <span>MUSIC</span>
+                    <label class="switch">
+                        <input type="checkbox" id="mainMusicToggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>DARK MODE</span>
+                    <label class="switch">
+                        <input type="checkbox" id="mainDarkModeToggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <button id="closeMainSettingsBtn" class="game-btn home-btn">BACK</button>
         </div>
 
         <div id="hudLayer" style="display: none;">
             
-            <div id="scoreBoard">
-                <img src="assets/icon_turta.png" alt="Pie Icon" class="score-icon">
-                <span class="score-val" id="scoreValue">0</span>
+            <div id="userProfile">
+                <img src="assets/suadam.png" alt="User" class="profile-pic">
+                <span class="username" id="userNameDisplay">Guest</span>
             </div>
 
-            <button id="menuBtn">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-            </button>
+            <div class="top-right-group">
+                <div id="scoreBoard">
+                    <img src="assets/icon_turta.png" alt="Pie" class="score-icon">
+                    <span class="score-val" id="scoreValue">0</span>
+                </div>
+
+                <button id="menuBtn">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </button>
+            </div>
 
         </div>
 
         <div id="pauseMenu" class="ui-panel" style="display: none;">
             <h2 class="menu-title">PAUSED</h2>
+            
             <button id="resumeBtn" class="game-btn resume-btn">RESUME</button>
+            
+            <div class="settings-box">
+                <div class="setting-item">
+                    <span>MUSIC</span>
+                    <label class="switch">
+                        <input type="checkbox" id="gameMusicToggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>DARK MODE</span>
+                    <label class="switch">
+                        <input type="checkbox" id="gameDarkModeToggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
             <button id="homeBtn" class="game-btn home-btn">MAIN MENU</button>
         </div>
         
@@ -75,6 +127,11 @@
             window.Telegram.WebApp.expand(); 
             window.Telegram.WebApp.setHeaderColor('#dff9fb');
             window.Telegram.WebApp.setBackgroundColor('#dff9fb');
+
+            const user = window.Telegram.WebApp.initDataUnsafe.user;
+            if (user && user.first_name) {
+                document.getElementById('userNameDisplay').innerText = user.first_name;
+            }
         }
     </script>
 </body>
