@@ -211,11 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
 
-    // --- OYUNCU AYARLARI ---
+    // --- OYUNCU AYARLARI (GÜNCELLENDİ: 1920 - 450) ---
     const player = {
         baseWidth: 280, baseHeight: 380, width: 280, height: 380,  
         x: (1080 / 2) - 140, 
-        y: 1920 - 550, 
+        y: 1920 - 450, // Karakter yüksekliği düzeltildi
         speedPPS: 1200, facingRight: true,
         isEating: false, frameX: 0, frameTimer: 0, frameInterval: 150, maxFrames: eatFrameCount 
     };
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startSettingsBtn.addEventListener('click', () => { startButtonsGroup.style.display = 'none'; mainSettingsMenu.style.display = 'flex'; });
     closeMainSettingsBtn.addEventListener('click', () => { mainSettingsMenu.style.display = 'none'; startButtonsGroup.style.display = 'flex'; });
     
-    // MARKET BUTONLARI (YENİ)
+    // MARKET BUTONLARI
     startMarketBtn.addEventListener('click', () => {
         startButtonsGroup.style.display = 'none';
         marketScreen.style.display = 'flex';
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateHearts();
         isBigMode = false; isDoubleScore = false; powerupTimer = 0; activePowerup.style.display = 'none';
         player.width = player.baseWidth; player.height = player.baseHeight; 
-        player.y = 1920 - 550; 
+        player.y = 1920 - 450; // Karakter yüksekliği düzeltildi
         objects = []; particles = []; player.x = (1080 / 2) - 140;
 
         currentQuestIndex = 0; questProgress = 0;
@@ -281,19 +281,28 @@ document.addEventListener('DOMContentLoaded', () => {
     homeBtn.addEventListener('click', goToMainMenu);
     goHomeBtn.addEventListener('click', goToMainMenu);
 
-    // --- KONTROLLER ---
+    // --- KONTROLLER (SCROLL FIX EKLENDİ) ---
     let leftPressed = false; let rightPressed = false;
     document.addEventListener('keydown', (e) => { if(e.key === 'ArrowLeft') leftPressed = true; if(e.key === 'ArrowRight') rightPressed = true; });
     document.addEventListener('keyup', (e) => { if(e.key === 'ArrowLeft') leftPressed = false; if(e.key === 'ArrowRight') rightPressed = false; });
     document.addEventListener('touchstart', handleTouch, {passive: false});
     document.addEventListener('touchmove', handleTouch, {passive: false});
     document.addEventListener('touchend', () => { leftPressed = false; rightPressed = false; });
+    
     function handleTouch(e) {
+        // Eğer market, settings veya quest gibi kaydırılabilir/tıklanabilir bir yere dokunuyorsak engelleme yapma
+        if (e.target.closest('.nft-grid') || e.target.closest('.settings-box') || e.target.closest('.market-box')) {
+            return; 
+        }
+
         if(e.type === 'touchmove') e.preventDefault(); 
         if (!gameRunning || isPaused) return;
         const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; 
         const touchX = (e.touches[0].clientX - rect.left) * scaleX;
-        if (e.target.closest('button') || e.target.closest('.settings-box') || e.target.closest('.market-box')) return;
+        
+        // Butonlara basarken hareket algılama
+        if (e.target.closest('button')) return;
+
         if (touchX < canvas.width / 2) { leftPressed = true; rightPressed = false; } else { rightPressed = true; leftPressed = false; }
     }
 
@@ -322,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (powerupTimer <= 0) {
                 isBigMode = false; isDoubleScore = false;
                 player.width = player.baseWidth; player.height = player.baseHeight;
-                player.y = 1920 - 550; activePowerup.style.display = 'none';
+                player.y = 1920 - 450; activePowerup.style.display = 'none'; // Karakter yüksekliği düzeltildi
             }
         }
 
@@ -337,7 +346,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (leftPressed && player.x > 0) { player.x -= player.speedPPS * deltaTime; player.facingRight = false; }
         if (rightPressed && player.x + player.width < canvas.width) { player.x += player.speedPPS * deltaTime; player.facingRight = true; }
         
-        if (!isBigMode) player.y = 1920 - 450; else player.y = 1920 - (450 * 1.3) + 100; 
+        // Karakter Y Konumu (Sürekli Güncelleme)
+        if (!isBigMode) player.y = 1920 - 450; 
+        else player.y = 1920 - (450 * 1.3) + 100; 
 
         spawnTimer += deltaTime * 1000; 
         if (spawnTimer > spawnInterval) { spawnObject(); spawnTimer = 0; }
@@ -348,21 +359,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let hitBoxX = isBigMode ? 40 : 70; let hitBoxY = isBigMode ? 40 : 80; 
 
             if (o.x < player.x + player.width - hitBoxX && o.x + o.size > player.x + hitBoxX && o.y < player.y + player.height && o.y + o.size > player.y + hitBoxY) {
-                // ÇARPIŞMA
                 if (o.type === 'pie') {
                     let points = isDoubleScore ? 2 : 1; score += points; scoreValElement.innerText = score;
-                    
                     checkQuestProgress('collect', 1);
                     checkQuestProgress('score', 0);
-
                     player.isEating = true; player.frameX = 0; player.frameTimer = 0;
                     createParticles(o.x+o.size/2, o.y+o.size/2, '#ff9f43'); triggerHaptic();
                     if (score % 5 === 0) { dropSpeedPPS += 50; if (spawnInterval > 400) spawnInterval -= 100; }
                 } else if (o.type === 'bomb') {
-                    health--; 
-                    updateHearts(); 
-                    triggerShake(); 
-                    createParticles(o.x+o.size/2, o.y+o.size/2, '#2d3436');
+                    health--; updateHearts(); triggerShake(); createParticles(o.x+o.size/2, o.y+o.size/2, '#2d3436');
                     if (health <= 0) gameOver();
                 } else if (o.type === 'expand') {
                     isBigMode = true; player.width = player.baseWidth * 1.3; player.height = player.baseHeight * 1.3;
@@ -372,7 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 objects.splice(i, 1); i--;
             }
-            else if (o.y > canvas.height - 350) { 
+            // YERE DÜŞME KONTROLÜ (GÜNCELLENDİ: 1920-450)
+            else if (o.y > 1920 - 350) { 
                 if (o.type === 'pie') { gameOver(); } 
                 else { objects.splice(i, 1); i--; }
             }
