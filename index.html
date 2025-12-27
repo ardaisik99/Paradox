@@ -5,129 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Blup Pie</title>
     <link rel="stylesheet" href="style.css">
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { overflow: hidden; overscroll-behavior: none; }
-    </style>
+    <style> body { overflow: hidden; overscroll-behavior: none; } </style>
 </head>
 <body>
 
-    <div id="game-container">
-        
-        <div id="loadingScreen" class="ui-panel">
-            <div class="logo-area">
-                <h1>BLUP<br><span class="pie-text">PIE</span></h1>
-            </div>
+    <div id="shake-wrapper">
+        <div id="game-container">
             
-            <div class="loader-container">
-                <div class="loader" id="loaderSpinner"></div>
-                <p id="loadingText">LOADING...</p>
-            </div>
-
-            <div id="startButtonsGroup" style="display: none; width: 100%; display: flex; flex-direction: column; align-items: center;">
-                <button id="startButton" class="game-btn start-btn">TAP TO START ▶</button>
-                <button id="startSettingsBtn" class="game-btn settings-btn">SETTINGS ⚙️</button>
-            </div>
-        </div>
-
-        <div id="mainSettingsMenu" class="ui-panel" style="display: none; z-index: 200;">
-            <h2 class="menu-title">SETTINGS</h2>
-            
-            <div class="settings-box">
-                <div class="setting-item">
-                    <span>MUSIC</span>
-                    <label class="switch">
-                        <input type="checkbox" id="mainMusicToggle" checked>
-                        <span class="slider round"></span>
-                    </label>
+            <div id="loadingScreen" class="ui-panel" style="display: flex; z-index: 9999;">
+                <div class="logo-area">
+                    <h1>BLUP<br><span class="pie-text">PIE</span></h1>
                 </div>
-                <div class="setting-item">
-                    <span>DARK MODE</span>
-                    <label class="switch">
-                        <input type="checkbox" id="mainDarkModeToggle">
-                        <span class="slider round"></span>
-                    </label>
+                
+                <div class="loader-container" id="loaderContainer">
+                    <div class="loader"></div>
+                    <p id="loadingText">LOADING...</p>
+                </div>
+
+                <div id="startButtonsGroup" style="display: none; width: 100%; flex-direction: column; align-items: center; gap: 15px;">
+                    
+                    <div class="highscore-badge">
+                        <span>BEST:</span> <span id="menuHighScore">0</span>
+                    </div>
+                    
+                    <button id="startButton" class="game-btn start-btn big-main-btn">TAP TO START ▶</button>
+                    
+                    <div class="row-buttons">
+                        <button id="startMarketBtn" class="game-btn market-btn half-btn">MARKET 💎</button>
+                        <button id="startSettingsBtn" class="game-btn settings-btn half-btn">SETTINGS ⚙️</button>
+                    </div>
+
                 </div>
             </div>
 
-            <button id="closeMainSettingsBtn" class="game-btn home-btn">BACK</button>
-        </div>
-
-        <div id="hudLayer" style="display: none;">
-            
-            <div id="userProfile">
-                <img src="assets/suadam.png" alt="User" class="profile-pic">
-                <span class="username" id="userNameDisplay">Guest</span>
-            </div>
-
-            <div class="top-right-group">
-                <div id="scoreBoard">
-                    <img src="assets/icon_turta.png" alt="Pie" class="score-icon">
-                    <span class="score-val" id="scoreValue">0</span>
+            <div id="marketScreen" class="ui-panel" style="display: none; z-index: 10000;">
+                <h2 class="menu-title">NFT MARKET</h2>
+                <div class="nft-grid">
+                    <div class="nft-card">
+                        <div class="nft-image-box"><img src="assets/karakter.png" alt="NFT"></div>
+                        <div class="nft-info"><span class="nft-name">Classic Blup</span><span class="nft-price">Owned</span></div>
+                    </div>
+                    <div class="nft-card locked">
+                        <div class="nft-image-box" style="background: #ff7675;"><img src="assets/karakter.png" style="filter: hue-rotate(90deg);"></div>
+                        <div class="nft-info"><span class="nft-name">Red Devil</span><span class="nft-price">500 💎</span></div>
+                    </div>
+                    <div class="nft-card locked">
+                        <div class="nft-image-box" style="background: #a29bfe;"><img src="assets/karakter.png" style="filter: hue-rotate(180deg);"></div>
+                        <div class="nft-info"><span class="nft-name">Purple Haze</span><span class="nft-price">1000 💎</span></div>
+                    </div>
+                    <div class="nft-card locked">
+                        <div class="nft-image-box" style="background: #ffeaa7;"><img src="assets/karakter.png" style="filter: invert(1);"></div>
+                        <div class="nft-info"><span class="nft-name">Ghost Pie</span><span class="nft-price">2000 💎</span></div>
+                    </div>
                 </div>
-
-                <button id="menuBtn">
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                    <div class="bar"></div>
-                </button>
+                <button id="closeMarketBtn" class="game-btn home-btn small-btn">BACK</button>
             </div>
 
-        </div>
-
-        <div id="pauseMenu" class="ui-panel" style="display: none;">
-            <h2 class="menu-title">PAUSED</h2>
-            
-            <button id="resumeBtn" class="game-btn resume-btn">RESUME</button>
-            
-            <div class="settings-box">
-                <div class="setting-item">
-                    <span>MUSIC</span>
-                    <label class="switch">
-                        <input type="checkbox" id="gameMusicToggle" checked>
-                        <span class="slider round"></span>
-                    </label>
+            <div id="mainSettingsMenu" class="ui-panel" style="display: none; z-index: 10000;">
+                <h2 class="menu-title">SETTINGS</h2>
+                <div class="settings-box">
+                    <div class="setting-item">
+                        <span>MUSIC</span>
+                        <label class="switch">
+                            <input type="checkbox" id="mainMusicToggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>DARK MODE</span>
+                        <label class="switch">
+                            <input type="checkbox" id="mainDarkModeToggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <span>DARK MODE</span>
-                    <label class="switch">
-                        <input type="checkbox" id="gameDarkModeToggle">
-                        <span class="slider round"></span>
-                    </label>
+                <button id="closeMainSettingsBtn" class="game-btn home-btn small-btn">BACK</button>
+            </div>
+
+            <div id="hudLayer" style="display: none;">
+                <div class="top-left-group">
+                    <div id="userProfile">
+                        <img src="assets/suadam.png" alt="User" class="profile-pic">
+                        <span class="username" id="userNameDisplay">Guest</span>
+                    </div>
+                    <div id="livesContainer">
+                        <img src="assets/kalp.png" class="heart-icon" id="heart1">
+                        <img src="assets/kalp.png" class="heart-icon" id="heart2">
+                        <img src="assets/kalp.png" class="heart-icon" id="heart3">
+                    </div>
+                </div>
+                <div id="questBox">
+                    <p id="questText">Loading...</p>
+                    <div class="progress-bar-bg">
+                        <div id="questBar" class="progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div id="activePowerup" style="display: none;">
+                    <span id="powerupText">2x SCORE!</span>
+                </div>
+                <div class="top-right-group">
+                    <div id="scoreBoard">
+                        <img src="assets/icon_turta.png" alt="Pie" class="score-icon">
+                        <span class="score-val" id="scoreValue">0</span>
+                    </div>
+                    <button id="menuBtn">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </button>
                 </div>
             </div>
 
-            <button id="homeBtn" class="game-btn home-btn">MAIN MENU</button>
-        </div>
-        
-        <div id="gameOverScreen" class="ui-panel" style="display: none;">
-            <h2 class="game-over-title">GAME OVER</h2>
-            <div class="score-card">
-                <p>YOUR SCORE</p>
-                <h3 id="finalScore">0</h3>
+            <div id="pauseMenu" class="ui-panel" style="display: none;">
+                <h2 class="menu-title">PAUSED</h2>
+                <button id="resumeBtn" class="game-btn resume-btn small-btn">RESUME</button>
+                <div class="settings-box">
+                    <div class="setting-item">
+                        <span>MUSIC</span>
+                        <label class="switch">
+                            <input type="checkbox" id="gameMusicToggle" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>DARK MODE</span>
+                        <label class="switch">
+                            <input type="checkbox" id="gameDarkModeToggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+                <button id="homeBtn" class="game-btn home-btn small-btn">MAIN MENU</button>
             </div>
-            <button onclick="resetGame()" class="game-btn retry-btn">PLAY AGAIN ↺</button>
-            <button id="goHomeBtn" class="game-btn home-btn-small">MAIN MENU</button>
+            
+            <div id="gameOverScreen" class="ui-panel" style="display: none;">
+                <h2 class="game-over-title">GAME OVER</h2>
+                <div class="score-card">
+                    <p>SCORE</p>
+                    <h3 id="finalScore">0</h3>
+                    <div class="highscore-small">BEST: <span id="finalHighScore">0</span></div>
+                </div>
+                <button onclick="resetGame()" class="game-btn retry-btn small-btn">PLAY AGAIN ↺</button>
+                <button id="goHomeBtn" class="game-btn home-btn-small small-btn">MAIN MENU</button>
+            </div>
+
+            <canvas id="gameCanvas"></canvas>
         </div>
-
-        <canvas id="gameCanvas"></canvas>
-
     </div>
 
     <script src="game.js"></script>
-    
     <script>
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand(); 
             window.Telegram.WebApp.setHeaderColor('#dff9fb');
             window.Telegram.WebApp.setBackgroundColor('#dff9fb');
-
             const user = window.Telegram.WebApp.initDataUnsafe.user;
             if (user && user.first_name) {
                 document.getElementById('userNameDisplay').innerText = user.first_name;
