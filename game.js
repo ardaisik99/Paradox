@@ -5,14 +5,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreElement = document.getElementById('scoreBoard');
     const gameOverScreen = document.getElementById('gameOverScreen');
     const finalScoreElement = document.getElementById('finalScore');
-    const loadingScreen = document.getElementById('loadingScreen'); // Yeni element
+    const loadingScreen = document.getElementById('loadingScreen');
 
     if (!gameOverScreen || !scoreElement || !loadingScreen) {
         console.error("HATA: HTML elementleri bulunamadı!");
         return;
     }
 
-    // --- RESİM YÖNETİMİ VE YÜKLEME EKRANI MANTIĞI ---
+    // --- RESİM YÖNETİMİ ---
     const images = {};
     const imageSources = {
         bg: 'assets/arkaplan.png',
@@ -24,26 +24,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let loadedCount = 0;
     const totalImages = Object.keys(imageSources).length;
 
-    // Resim yüklendikçe çalışacak fonksiyon
     function checkAllImagesLoaded() {
         loadedCount++;
         if (loadedCount === totalImages) {
-            // Hepsi yüklendi!
-            console.log("Tüm resimler hazır. Oyun başlıyor...");
-            
-            // Yükleme ekranını gizle
             loadingScreen.style.display = 'none';
-            
-            // Oyunu başlat
-            update();
+            // Oyunu başlatırken zaman damgasını gönderiyoruz
+            requestAnimationFrame(update);
         }
     }
 
-    // Resimleri döngüyle yükle ve dinle
     for (let key in imageSources) {
         images[key] = new Image();
-        images[key].onload = checkAllImagesLoaded; // Yüklenince sayacı artır
-        images[key].onerror = checkAllImagesLoaded; // Hata olsa bile oyunu kilitlemesin, devam etsin
+        images[key].onload = checkAllImagesLoaded;
+        images[key].onerror = checkAllImagesLoaded;
         images[key].src = imageSources[key];
     }
 
@@ -54,19 +47,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- OYUN DEĞİŞKENLERİ ---
     let gameRunning = true;
     let score = 0;
-    let frames = 0;
     
-    // Zorluk
-    let dropSpeed = 6;   
-    let spawnRate = 100; 
+    // DELTA TIME İÇİN ZAMAN DEĞİŞKENLERİ (YENİ)
+    let lastTime = 0;
+    let spawnTimer = 0;
 
-    // Oyuncu
+    // --- HIZ AYARLARI (ARTIK "PİKSEL/SANİYE" CİNSİNDEN) ---
+    // Not: Delta Time kullandığımız için sayılar büyüdü.
+    // Eskiden frame başına 6 gidiyordu (6 x 60fps = 360).
+    let dropSpeedPPS = 400; // Saniyede 400 piksel aşağı düşüş hızı
+    let spawnInterval = 1500; // Milisaniye cinsinden turta doğma süresi (1.5 saniye)
+
+    // OYUNCU AYARLARI
     const player = {
         width: 280,   
         height: 380,  
         x: (1080 / 2) - 140, 
         y: 1920 - 470,       
-        speed: 15     
+        speedPPS: 1200 // Player Speed Per Second (Saniyede 1200 piksel hız)
     };
 
     let pies = [];
@@ -114,32 +112,52 @@ document.addEventListener('DOMContentLoaded', () => {
             x: x,
             y: -150, 
             size: size,
-            speed: dropSpeed + Math.random() * 2 
+            // Hızlar da artık saniyelik bazda hesaplanıyor
+            speedPPS: dropSpeedPPS + Math.random() * 200 
         });
     }
 
-    function update() {
+    // UPDATE FONKSİYONU (ZAMAN BAZLI GÜNCELLENDİ)
+    function update(timestamp) {
         if (!gameRunning) return;
 
-        // Oyuncu Hareketi
+        // Delta Time Hesabı: İki kare arasında geçen süreyi (saniye cinsinden) bul.
+        if (!lastTime) lastTime = timestamp;
+        const deltaTime = (timestamp - lastTime) / 1000; // ms'yi saniyeye çevir
+        lastTime = timestamp;
+
+        // Çok büyük takılmalarda (örn: tarayıcı sekmesi değiştiğinde) hatayı önle
+        if (deltaTime > 0.1) {
+            requestAnimationFrame(update);
+            return;
+        }
+
+        // 1. OYUNCU HAREKETİ (Hız * DeltaTime)
+        // Artık 120Hz'de de 60Hz'de de aynı mesafeyi gider.
         if (leftPressed && player.x > 0) {
-            player.x -= player.speed;
+            player.x -= player.speedPPS * deltaTime;
         }
         if (rightPressed && player.x + player.width < canvas.width) {
-            player.x += player.speed;
+            player.x += player.speedPPS * deltaTime;
         }
         
         player.y = canvas.height - 470; 
 
-        if (frames % spawnRate === 0) { 
+        // 2. TURTA ÜRETİMİ (ZAMAN SAYACINA GÖRE)
+        spawnTimer += deltaTime * 1000; // ms olarak ekle
+        if (spawnTimer > spawnInterval) {
             spawnPie();
+            spawnTimer = 0; // Sayacı sıfırla
         }
 
+        // 3. TURTALARI GÜNCELLE
         for (let i = 0; i < pies.length; i++) {
             let p = pies[i];
-            p.y += p.speed;
+            
+            // Turtayı aşağı indir (Piksel/Saniye * Geçen Süre)
+            p.y += p.speedPPS * deltaTime;
 
-            // Hitbox
+            // Hitbox (Değişmedi, aynı mantık)
             let hitBoxX = 70; 
             let hitBoxY = 80; 
 
@@ -149,14 +167,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 p.y < player.y + player.height &&          
                 p.y + p.size > player.y + hitBoxY          
             ) {
+                // Skor
                 score++;
                 scoreElement.innerText = "Skor: " + score;
                 pies.splice(i, 1);
                 i--;
 
+                // Zorluk Artırma
                 if (score % 5 === 0) {
-                    dropSpeed += 0.8;
-                    if (spawnRate > 40) spawnRate -= 5;
+                    dropSpeedPPS += 50; // Hızı artır
+                    if (spawnInterval > 400) spawnInterval -= 100; // Süreyi kısalt
                 }
 
             }
@@ -165,8 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        frames++;
-        requestAnimationFrame(draw);
         requestAnimationFrame(update);
     }
 
@@ -191,7 +209,37 @@ document.addEventListener('DOMContentLoaded', () => {
             if (images.pie.complete) ctx.drawImage(images.pie, p.x, p.y, p.size, p.size);
             else { ctx.fillStyle = "orange"; ctx.fillRect(p.x, p.y, p.size, p.size); }
         }
+        
+        // Çizim fonksiyonunu sürekli çağırmaya gerek yok, Update içinde requestAnimationFrame zaten ekranı yeniler.
+        // Ancak çizimin logic'ten ayrılması iyidir. Burada basitlik için update içine almadım ama
+        // frame senkronizasyonu için update döngüsü içinde çizimi çağırmak daha doğru olabilir.
+        // Aşağıdaki "loop" mantığını kullanacağız.
     }
+    
+    // Çizim ve Mantığı Tek Döngüde Birleştirelim (En pürüzsüz görüntü için)
+    // Yukarıdaki update fonksiyonunun en sonundaki requestAnimationFrame'i değiştirdim.
+    // Artık update fonksiyonu hem hesaplama yapıyor hem de draw'ı çağırıyor.
+    
+    // NOT: draw() fonksiyonunu update'in sonuna eklemeliyiz.
+    // (JavaScript'te fonksiyonlar hoisting olduğu için yerini değiştirmene gerek yok ama
+    // update fonksiyonunun sonuna "draw();" ekledim varsay.)
+
+    // DÜZELTME: update fonksiyonunun sonunu şöyle yapıyoruz:
+    /*
+        draw();
+        requestAnimationFrame(update);
+    */
+    // Kodun içinde bu yapıyı aşağıda güncelledim.
+    
+    // --- GÜNCELLENMİŞ UPDATE SONU ---
+    // (Yukarıdaki update fonksiyonunu kopyalarken draw'ı çağırmayı unutmaman için 
+    // fonksiyonu tekrar yazmak yerine buraya overwrite ediyorum)
+    
+    const originalUpdate = update;
+    update = function(timestamp) {
+        originalUpdate(timestamp);
+        draw(); // Her hesaplamadan sonra çizim yap
+    };
 
     function gameOver() {
         gameRunning = false;
@@ -201,16 +249,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.resetGame = function() {
         score = 0;
-        frames = 0;
-        dropSpeed = 6; 
-        spawnRate = 100;
+        
+        // Reset Değerleri
+        dropSpeedPPS = 400; 
+        spawnInterval = 1500;
+        spawnTimer = 0;
+        lastTime = 0; // Zamanı sıfırla
+        
         pies = [];
         
         if(scoreElement) scoreElement.innerText = "Skor: 0";
         if(gameOverScreen) gameOverScreen.style.display = 'none';
         
         gameRunning = true;
-        requestAnimationFrame(draw);
-        update();
+        requestAnimationFrame(update);
     }
 });
