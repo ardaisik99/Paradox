@@ -1,23 +1,27 @@
+/* --- GENEL AYARLAR (Mavi-Beyaz Tema) --- */
 body {
     margin: 0;
     padding: 0;
-    background-color: #222;
+    background: linear-gradient(135deg, #dff9fb 0%, #c7ecee 100%);
     height: 100vh;
     width: 100vw;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Fredoka', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #game-container {
     position: relative;
     width: 100%;
     height: 100%;
-    max-width: 56.25vh; /* 9:16 Oranı */
-    background-color: #000;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    max-width: 56.25vh;
+    background-color: #81ecec;
+    box-shadow: 0 0 40px rgba(0, 168, 255, 0.2);
+    overflow: hidden;
 }
 
 canvas {
@@ -26,97 +30,222 @@ canvas {
     height: 100%;
 }
 
-/* --- YÜKLEME EKRANI STİLLERİ --- */
-#loadingScreen {
+/* --- UI PANEL --- */
+.ui-panel {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #333; /* Koyu gri zemin */
-    color: white;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 100; /* En üstte durmalı */
+    z-index: 100;
 }
 
-#loadingScreen p {
-    margin-top: 20px;
-    font-size: 5vmin;
-    font-weight: bold;
+/* --- LOGO --- */
+.logo-area h1 {
+    font-size: 13vmin;
+    line-height: 0.9;
+    text-align: center;
+    color: #00a8ff; 
+    text-shadow: 4px 4px 0px #ffffff, 6px 6px 0px #0984e3;
+    margin-bottom: 40px;
+    animation: bounce 2s infinite ease-in-out;
+}
+
+.pie-text {
+    color: #ff9f43; 
+    text-shadow: 4px 4px 0px #ffffff, 6px 6px 0px #d35400;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* --- LOADER --- */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.loader {
+    border: 6px solid rgba(0, 168, 255, 0.2);
+    border-top: 6px solid #00a8ff;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+#loadingText {
+    font-size: 4vmin;
+    color: #0097e6;
+    font-weight: 700;
     letter-spacing: 2px;
 }
 
-/* Dönen Yuvarlak Animasyonu */
-.loader {
-    border: 8px solid #f3f3f3;
-    border-top: 8px solid #ff9800; /* Turuncu renk */
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    animation: spin 1s linear infinite;
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- BUTONLAR --- */
+.game-btn {
+    font-family: 'Fredoka', sans-serif;
+    border: none;
+    border-radius: 50px;
+    padding: 18px 40px;
+    font-size: 6vmin;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.1s;
+    text-transform: uppercase;
+    box-shadow: 0 8px 15px rgba(0, 168, 255, 0.3);
+    margin-top: 15px;
+    width: 75%;
+    position: relative;
+    top: 0;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.game-btn:active {
+    top: 4px;
+    box-shadow: 0 4px 5px rgba(0, 168, 255, 0.3);
 }
 
-/* --- DİĞER OYUN ARAYÜZLERİ --- */
+.start-btn, .resume-btn {
+    background: linear-gradient(to bottom, #00a8ff, #0097e6);
+    border-bottom: 5px solid #007bb8;
+}
+
+.retry-btn {
+    background: linear-gradient(to bottom, #00cec9, #00b894);
+    border-bottom: 5px solid #008f72;
+}
+
+.home-btn, .home-btn-small {
+    background: linear-gradient(to bottom, #74b9ff, #0984e3);
+    border-bottom: 5px solid #06528d;
+    font-size: 5vmin;
+    padding: 15px 30px;
+    width: 60%;
+}
+
+.home-btn-small {
+    margin-top: 10px;
+    font-size: 4vmin;
+    background: transparent;
+    border: 2px solid #0984e3;
+    color: #0984e3;
+    box-shadow: none;
+}
+.home-btn-small:active {
+    background: #0984e3;
+    color: white;
+}
+
+/* --- HUD --- */
+#hudLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
 #scoreBoard {
     position: absolute;
-    top: 2%;
-    left: 5%;
-    font-size: 6vmin;
-    font-weight: bold;
-    color: white;
-    text-shadow: 2px 2px 4px #000;
-    z-index: 10;
-    pointer-events: none;
+    top: 25px;
+    left: 25px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 20px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border: 2px solid #00a8ff;
 }
 
-#gameOverScreen {
-    display: none;
+/* YENİ: Skor İkonu Boyutu */
+.score-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.score-val {
+    font-size: 7vmin;
+    color: #0097e6;
+    font-weight: 700;
+}
+
+#menuBtn {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80%;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 20px;
-    border-radius: 20px;
-    text-align: center;
-    z-index: 20;
-    border: 3px solid #fff;
-    box-sizing: border-box;
-}
-
-#gameOverScreen h1 {
-    font-size: 8vmin;
-    margin: 0 0 10px 0;
-}
-
-#gameOverScreen p {
-    font-size: 6vmin;
-    margin: 10px 0;
-}
-
-button {
-    padding: 15px 30px;
-    font-size: 5vmin;
-    font-weight: bold;
+    top: 25px;
+    right: 25px;
+    width: 50px;
+    height: 50px;
+    background: white;
+    border: 2px solid #00a8ff;
+    border-radius: 15px;
     cursor: pointer;
-    background-color: #ff9800;
-    border: none;
-    color: white;
-    border-radius: 10px;
-    margin-top: 20px;
-    width: 80%;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-button:active {
-    background-color: #e68900;
+#menuBtn .bar {
+    width: 25px;
+    height: 4px;
+    background-color: #00a8ff;
+    border-radius: 2px;
+}
+
+#menuBtn:active {
+    transform: scale(0.95);
+}
+
+/* --- PAUSE VE GAME OVER --- */
+.menu-title, .game-over-title {
+    font-size: 10vmin;
+    color: #0097e6;
+    margin-bottom: 20px;
+    text-align: center;
+    width: 100%;
+}
+
+.score-card {
+    background: white;
+    padding: 20px;
+    border-radius: 25px;
+    width: 60%;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 20px rgba(0, 168, 255, 0.15);
+    color: #333;
+}
+
+.score-card p {
+    margin: 0;
+    font-size: 4vmin;
+    color: #b2bec3;
+    font-weight: 600;
+}
+
+.score-card h3 {
+    margin: 0;
+    font-size: 12vmin;
+    color: #2d3436;
 }
