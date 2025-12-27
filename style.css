@@ -1,7 +1,7 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: #222; /* Kenardaki boşluklar koyu renk olsun */
+    background-color: #222;
     height: 100vh;
     width: 100vw;
     display: flex;
@@ -11,15 +11,11 @@ body {
     font-family: 'Arial', sans-serif;
 }
 
-/* OYUNU TELEFON FORMATINA SABİTLEYEN KUTU */
 #game-container {
     position: relative;
-    
-    /* En boy oranını 9:16 (1080x1920) yapıyoruz */
     width: 100%;
     height: 100%;
-    max-width: 56.25vh; /* Yüksekliğe göre genişliği ayarlar (9/16 = 0.5625) */
-    
+    max-width: 56.25vh; /* 9:16 Oranı */
     background-color: #000;
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
@@ -30,13 +26,50 @@ canvas {
     height: 100%;
 }
 
-/* SKOR TABLOSU */
+/* --- YÜKLEME EKRANI STİLLERİ --- */
+#loadingScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #333; /* Koyu gri zemin */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100; /* En üstte durmalı */
+}
+
+#loadingScreen p {
+    margin-top: 20px;
+    font-size: 5vmin;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+/* Dönen Yuvarlak Animasyonu */
+.loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #ff9800; /* Turuncu renk */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- DİĞER OYUN ARAYÜZLERİ --- */
 #scoreBoard {
     position: absolute;
     top: 2%;
     left: 5%;
-    /* Yazı boyutunu oyunun genişliğine göre ayarla (Responsive) */
-    font-size: 6vmin; 
+    font-size: 6vmin;
     font-weight: bold;
     color: white;
     text-shadow: 2px 2px 4px #000;
@@ -44,17 +77,13 @@ canvas {
     pointer-events: none;
 }
 
-/* OYUN BİTTİ EKRANI */
 #gameOverScreen {
     display: none;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    
-    /* Kutunun genişliği oyun alanının %80'i olsun */
-    width: 80%; 
-    
+    width: 80%;
     background: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 20px;
@@ -65,7 +94,6 @@ canvas {
     box-sizing: border-box;
 }
 
-/* Yazı Boyutları (Responsive - vmin kullanarak ekran küçülünce küçülür) */
 #gameOverScreen h1 {
     font-size: 8vmin;
     margin: 0 0 10px 0;
@@ -78,7 +106,7 @@ canvas {
 
 button {
     padding: 15px 30px;
-    font-size: 5vmin; /* Buton yazısı da ölçeklensin */
+    font-size: 5vmin;
     font-weight: bold;
     cursor: pointer;
     background-color: #ff9800;
@@ -86,7 +114,7 @@ button {
     color: white;
     border-radius: 10px;
     margin-top: 20px;
-    width: 80%; /* Buton genişliği */
+    width: 80%;
 }
 
 button:active {

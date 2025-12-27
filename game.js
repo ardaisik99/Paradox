@@ -5,26 +5,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreElement = document.getElementById('scoreBoard');
     const gameOverScreen = document.getElementById('gameOverScreen');
     const finalScoreElement = document.getElementById('finalScore');
+    const loadingScreen = document.getElementById('loadingScreen'); // Yeni element
 
-    if (!gameOverScreen || !scoreElement) {
+    if (!gameOverScreen || !scoreElement || !loadingScreen) {
         console.error("HATA: HTML elementleri bulunamadı!");
         return;
     }
 
-    // --- RESİMLER ---
-    const bgImg = new Image();
-    bgImg.src = 'assets/arkaplan.png'; 
+    // --- RESİM YÖNETİMİ VE YÜKLEME EKRANI MANTIĞI ---
+    const images = {};
+    const imageSources = {
+        bg: 'assets/arkaplan.png',
+        player: 'assets/karakter.png',
+        pie: 'assets/turta.png',
+        ground: 'assets/zemin.png'
+    };
 
-    const playerImg = new Image();
-    playerImg.src = 'assets/karakter.png'; 
+    let loadedCount = 0;
+    const totalImages = Object.keys(imageSources).length;
 
-    const pieImg = new Image();
-    pieImg.src = 'assets/turta.png'; 
+    // Resim yüklendikçe çalışacak fonksiyon
+    function checkAllImagesLoaded() {
+        loadedCount++;
+        if (loadedCount === totalImages) {
+            // Hepsi yüklendi!
+            console.log("Tüm resimler hazır. Oyun başlıyor...");
+            
+            // Yükleme ekranını gizle
+            loadingScreen.style.display = 'none';
+            
+            // Oyunu başlat
+            update();
+        }
+    }
 
-    const groundImg = new Image();
-    groundImg.src = 'assets/zemin.png';
+    // Resimleri döngüyle yükle ve dinle
+    for (let key in imageSources) {
+        images[key] = new Image();
+        images[key].onload = checkAllImagesLoaded; // Yüklenince sayacı artır
+        images[key].onerror = checkAllImagesLoaded; // Hata olsa bile oyunu kilitlemesin, devam etsin
+        images[key].src = imageSources[key];
+    }
 
-    // --- ÇÖZÜNÜRLÜK AYARLARI (SABİT 1080x1920) ---
+    // --- ÇÖZÜNÜRLÜK AYARLARI ---
     canvas.width = 1080;
     canvas.height = 1920;
 
@@ -33,11 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let score = 0;
     let frames = 0;
     
-    // ZORLUK AYARLARI
+    // Zorluk
     let dropSpeed = 6;   
     let spawnRate = 100; 
 
-    // OYUNCU AYARLARI
+    // Oyuncu
     const player = {
         width: 280,   
         height: 380,  
@@ -50,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let leftPressed = false;
     let rightPressed = false;
 
-    // --- BİLGİSAYAR KONTROLLERİ (KLAVYE) ---
+    // --- KONTROLLER ---
     document.addEventListener('keydown', (e) => {
         if(e.key === 'ArrowLeft') leftPressed = true;
         if(e.key === 'ArrowRight') rightPressed = true;
@@ -60,41 +83,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if(e.key === 'ArrowRight') rightPressed = false;
     });
 
-    // --- MOBİL DOKUNMATİK KONTROLLERİ (GÜNCELLENDİ) ---
-    
-    // 1. Ekrana ilk dokunuş
     document.addEventListener('touchstart', handleTouch, {passive: false});
-    
-    // 2. Parmağı kaldırmadan sürükleme (Yön değiştirmek için)
     document.addEventListener('touchmove', handleTouch, {passive: false});
-
-    // 3. Parmak ekrandan çekilince dur
     document.addEventListener('touchend', () => {
         leftPressed = false;
         rightPressed = false;
     });
 
     function handleTouch(e) {
-        // Sayfanın kaymasını engelle (Scroll olmasın)
-        if(e.type === 'touchmove') {
-            e.preventDefault(); 
-        }
+        if(e.type === 'touchmove') e.preventDefault(); 
 
-        // Dokunulan noktanın oyun içindeki gerçek yerini hesapla
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width; 
-        
-        // İlk parmağın X koordinatı
         const touchX = (e.touches[0].clientX - rect.left) * scaleX;
 
-        // EKRANIN ORTASINA GÖRE HESAP:
-        // Eğer dokunulan yer 1080'in yarısından (540) küçükse -> SOL
         if (touchX < canvas.width / 2) {
             leftPressed = true;
             rightPressed = false;
-        } 
-        // Eğer büyükse -> SAĞ
-        else {
+        } else {
             rightPressed = true;
             leftPressed = false;
         }
@@ -115,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function update() {
         if (!gameRunning) return;
 
-        // Oyuncu Hareketi (Sınırları aşmasın)
+        // Oyuncu Hareketi
         if (leftPressed && player.x > 0) {
             player.x -= player.speed;
         }
@@ -123,22 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
             player.x += player.speed;
         }
         
-        // Zemin konumu sabit
         player.y = canvas.height - 470; 
 
-        // Turta Üretimi
         if (frames % spawnRate === 0) { 
             spawnPie();
         }
 
-        // Turtaları Güncelle
         for (let i = 0; i < pies.length; i++) {
             let p = pies[i];
             p.y += p.speed;
 
-            // --- ÇARPIŞMA KONTROLÜ (Daraltılmış Hitbox) ---
-            let hitBoxX = 70; // Yanlardan pay
-            let hitBoxY = 80; // Üstten pay
+            // Hitbox
+            let hitBoxX = 70; 
+            let hitBoxY = 80; 
 
             if (
                 p.x < player.x + player.width - hitBoxX && 
@@ -146,21 +149,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 p.y < player.y + player.height &&          
                 p.y + p.size > player.y + hitBoxY          
             ) {
-                // YAKALANDI!
                 score++;
                 scoreElement.innerText = "Skor: " + score;
                 pies.splice(i, 1);
                 i--;
 
-                // Zorluk Artırma (Her 5 puanda bir)
                 if (score % 5 === 0) {
                     dropSpeed += 0.8;
                     if (spawnRate > 40) spawnRate -= 5;
                 }
 
             }
-            // Yere çarptı mı?
-            else if (p.y > canvas.height - 320) { 
+            else if (p.y > canvas.height - 350) { 
                 gameOver();
             }
         }
@@ -175,33 +175,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // A. Arkaplan
-        if (bgImg.complete && bgImg.naturalWidth !== 0) {
-            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-        } else {
-            ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+        if (images.bg.complete) ctx.drawImage(images.bg, 0, 0, canvas.width, canvas.height);
+        else { ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 
         // B. Zemin
-        if (groundImg.complete && groundImg.naturalWidth !== 0) {
-            ctx.drawImage(groundImg, -100, canvas.height - 1000, 1400, 1800);
-        } else {
-            ctx.fillStyle = "#4CAF50"; ctx.fillRect(0, canvas.height - 100, 1080, 100);
-        }
+        if (images.ground.complete) ctx.drawImage(images.ground, -100, canvas.height - 1030, 1400, 1820);
+        else { ctx.fillStyle = "#4CAF50"; ctx.fillRect(0, canvas.height - 100, 1080, 100); }
 
         // C. Karakter
-        if (playerImg.complete && playerImg.naturalWidth !== 0) {
-            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-        } else {
-            ctx.fillStyle = "red"; ctx.fillRect(player.x, player.y, player.width, player.height);
-        }
+        if (images.player.complete) ctx.drawImage(images.player, player.x, player.y, player.width, player.height);
+        else { ctx.fillStyle = "red"; ctx.fillRect(player.x, player.y, player.width, player.height); }
 
         // D. Turtalar
         for (let p of pies) {
-            if (pieImg.complete && pieImg.naturalWidth !== 0) {
-                ctx.drawImage(pieImg, p.x, p.y, p.size, p.size);
-            } else {
-                ctx.fillStyle = "orange"; ctx.fillRect(p.x, p.y, p.size, p.size);
-            }
+            if (images.pie.complete) ctx.drawImage(images.pie, p.x, p.y, p.size, p.size);
+            else { ctx.fillStyle = "orange"; ctx.fillRect(p.x, p.y, p.size, p.size); }
         }
     }
 
@@ -214,11 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.resetGame = function() {
         score = 0;
         frames = 0;
-        
-        // Reset Değerleri
         dropSpeed = 6; 
         spawnRate = 100;
-        
         pies = [];
         
         if(scoreElement) scoreElement.innerText = "Skor: 0";
@@ -228,6 +213,4 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(draw);
         update();
     }
-
-    update();
 });
