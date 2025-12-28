@@ -1,315 +1,153 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const loadingScreen = document.getElementById('loadingScreen');
+const uiOverlay = document.getElementById('uiOverlay');
+const rotateView = document.getElementById('rotateView');
+const loadingView = document.getElementById('loadingView');
+const gameContainer = document.getElementById('gameContainer');
+const errorMsg = document.getElementById('errorMsg');
 
-// Telegram WebApp Ayarları
+// Telegram Başlatma
 if (window.Telegram && window.Telegram.WebApp) {
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand(); // Ekranı tam boyuta aç
 }
-
-// ==========================================
-// 🔥 GÖRSEL YÜKLEME VE BAŞLATMA 🔥
-// ==========================================
 
 const gameWidth = 1920; 
 const gameHeight = 1080;
-
-const assets = {
-    bg: new Image(),
-    player: new Image(),
-    door: new Image(),
-    btnOff: new Image(),
-    btnOn: new Image()
-};
-
-// Görsellerin kaçının yüklendiğini sayalım
 let assetsLoaded = 0;
 const totalAssets = 5;
+const assets = {
+    bg: new Image(), player: new Image(), door: new Image(),
+    btnOff: new Image(), btnOn: new Image()
+};
 
-function assetLoaded() {
+// Resim Yükleme Kontrolü
+function checkAssets() {
     assetsLoaded++;
     if (assetsLoaded === totalAssets) {
-        // Hepsi yüklendiğinde yükleme ekranını kaldır ve oyunu başlat
-        setTimeout(() => {
-            loadingScreen.style.opacity = '0';
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-                resize(); // Ekran boyutunu ayarla
-                loop();   // Oyunu başlat
-            }, 500);
-        }, 1000); // En az 1 saniye loading görünsün (Şekil olsun diye)
+        loadingView.style.display = 'none';
+        checkOrientation(); // Dosyalar bitti, yönü kontrol et
+        loop();
     }
 }
 
-assets.bg.src = 'assets/map_level1.png';
-assets.bg.onload = assetLoaded;
+// Resim Hata Kontrolü
+function assetError(e) {
+    errorMsg.innerText = "Dosya eksik: " + e.target.src.split('/').pop();
+}
 
-assets.player.src = 'assets/character.png';
-assets.player.onload = assetLoaded;
+assets.bg.onload = checkAssets; assets.bg.onerror = assetError; assets.bg.src = 'assets/map_level1.png';
+assets.player.onload = checkAssets; assets.player.onerror = assetError; assets.player.src = 'assets/character.png';
+assets.door.onload = checkAssets; assets.door.onerror = assetError; assets.door.src = 'assets/door.png';
+assets.btnOff.onload = checkAssets; assets.btnOff.onerror = assetError; assets.btnOff.src = 'assets/button_off.png';
+assets.btnOn.onload = checkAssets; assets.btnOn.onerror = assetError; assets.btnOn.src = 'assets/button_on.png';
 
-assets.door.src = 'assets/door.png';
-assets.door.onload = assetLoaded;
+// --- KRİTİK: YÖN VE EKRAN KONTROLÜ ---
+function checkOrientation() {
+    const isLandscape = window.innerWidth > window.innerHeight;
 
-assets.btnOff.src = 'assets/button_off.png';
-assets.btnOff.onload = assetLoaded;
+    if (isLandscape) {
+        // Yatay ise: Oyunu göster
+        if (assetsLoaded === totalAssets) {
+            uiOverlay.style.display = 'none';
+            gameContainer.style.display = 'flex';
+            resize();
+        }
+    } else {
+        // Dikey ise: Uyarıyı göster
+        uiOverlay.style.display = 'flex';
+        rotateView.style.display = 'block';
+        gameContainer.style.display = 'none';
+    }
+}
 
-assets.btnOn.src = 'assets/button_on.png';
-assets.btnOn.onload = assetLoaded;
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
 
+function resize() {
+    const scale = Math.min(window.innerWidth / gameWidth, window.innerHeight / gameHeight);
+    canvas.style.width = (gameWidth * scale) + "px";
+    canvas.style.height = (gameHeight * scale) + "px";
+    canvas.width = gameWidth;
+    canvas.height = gameHeight;
+}
 
-// ==========================================
-// 🔥 OYUN AYARLARI 🔥
-// ==========================================
-
-// 1. KARAKTER
-const PLAYER_SETTINGS = {
-    width: 80,    
-    height: 300,  
-    startX: 200,  
-    startY: 700,  
-    speed: 8,     
-    jump: -14     
-};
-
-const GROUND_Y = 850; 
-const GRAVITY = 0.8;
-
-// 3. OBJELER
-const DOOR_SETTINGS = {
-    width: 1600,   
-    height: 1000, 
-    x: 550,       
-    y: 30        
-};
-
-const BUTTON_SETTINGS = {
-    width: 800,
-    height: 500,
-    x: 400,
-    y: 560
-};
-
-// ==========================================
-//           SİSTEM KODLARI
-// ==========================================
-
-canvas.width = gameWidth;
-canvas.height = gameHeight;
-
-let keys = { Right: false, Left: false, Up: false, Action: false };
+// --- OYUN MANTIĞI ---
+let keys = { Right: false, Left: false, Up: false };
 let gameWon = false; 
 let frameCount = 0; 
-
-// --- ÇOKLU KLON SİSTEMİ ---
 let allRecordings = []; 
 let currentRecording = []; 
 
-const player = {
-    x: PLAYER_SETTINGS.startX,
-    y: PLAYER_SETTINGS.startY,
-    w: PLAYER_SETTINGS.width,
-    h: PLAYER_SETTINGS.height,
-    vx: 0, vy: 0,
-    grounded: false
-};
-
-const door = { 
-    x: DOOR_SETTINGS.x, 
-    y: DOOR_SETTINGS.y, 
-    w: DOOR_SETTINGS.width, 
-    h: DOOR_SETTINGS.height, 
-    open: false 
-};
-
-const button = { 
-    x: BUTTON_SETTINGS.x, 
-    y: BUTTON_SETTINGS.y, 
-    w: BUTTON_SETTINGS.width, 
-    h: BUTTON_SETTINGS.height, 
-    pressed: false 
-};
-
-// --- EKRAN BOYUTLANDIRMA (RESPONSIVE) ---
-function resize() {
-    // Telefonun ekran boyutlarını al
-    let windowWidth = window.innerWidth;
-    let windowHeight = window.innerHeight;
-
-    // En boy oranını koruyarak canvas'ı sığdır
-    let scale = Math.min(windowWidth / gameWidth, windowHeight / gameHeight);
-    
-    canvas.style.width = (gameWidth * scale) + "px";
-    canvas.style.height = (gameHeight * scale) + "px";
-}
-window.addEventListener('resize', resize);
-
-
-function checkButtonHitbox(x, y, w, h) {
-    let activeStart = 560; 
-    let activeEnd = 920; 
-
-    if (
-        x > activeStart &&      
-        x < activeEnd &&        
-        y + h > button.y
-    ) {
-        return true;
-    }
-    return false;
-}
+const PLAYER_SETTINGS = { width: 80, height: 270, startX: 200, startY: 700, speed: 8, jump: -14 };
+const player = { ...PLAYER_SETTINGS, x: PLAYER_SETTINGS.startX, y: PLAYER_SETTINGS.startY, vx: 0, vy: 0, grounded: false, w: 80, h: 270 };
+const door = { x: 550, y: 30, w: 1600, h: 1000, open: false };
+const button = { x: 400, y: 560, w: 800, h: 500, pressed: false };
 
 function update() {
-    if (gameWon) return;
+    if (gameWon || assetsLoaded < totalAssets || window.innerHeight > window.innerWidth) return;
 
-    // --- OYUNCU HAREKETİ ---
     if (keys.Right) player.vx += 1;
     if (keys.Left) player.vx -= 1;
-     
-    player.vx *= 0.85; 
-    if(Math.abs(player.vx) > PLAYER_SETTINGS.speed) player.vx = PLAYER_SETTINGS.speed * Math.sign(player.vx);
-
-    player.vy += GRAVITY;
+    player.vx *= 0.85;
+    player.vy += 0.8; // Gravity
     player.x += player.vx;
     player.y += player.vy;
 
-    if (player.y + player.h > GROUND_Y) {
-        player.y = GROUND_Y - player.h;
-        player.vy = 0;
-        player.grounded = true;
-    } else {
-        player.grounded = false;
-    }
-
-    if (keys.Up && player.grounded) {
-        player.vy = PLAYER_SETTINGS.jump;
-        player.grounded = false;
-    }
-
+    // Zemin ve Sınırlar
+    if (player.y + player.h > 850) { player.y = 850 - player.h; player.vy = 0; player.grounded = true; }
+    if (keys.Up && player.grounded) { player.vy = player.jump; player.grounded = false; }
     if (player.x < 0) player.x = 0;
 
-    // --- KAYIT SİSTEMİ ---
     currentRecording.push({ x: player.x, y: player.y });
 
-    // --- KLONLARI KONTROL ET ---
-    let anyCloneOnButton = false;
-
-    for (let i = 0; i < allRecordings.length; i++) {
-        let run = allRecordings[i];
+    // Buton ve Klon Mantığı
+    let playerOnBtn = (player.x > 560 && player.x < 920 && player.y + player.h > 560);
+    let cloneOnBtn = false;
+    allRecordings.forEach(run => {
         if (frameCount < run.length) {
-            let clonePos = run[frameCount];
-            if (checkButtonHitbox(clonePos.x, clonePos.y, player.w, player.h)) {
-                anyCloneOnButton = true;
-            }
+            let p = run[frameCount];
+            if (p.x > 560 && p.x < 920) cloneOnBtn = true;
         }
-    }
+    });
 
-    let playerOnButton = checkButtonHitbox(player.x, player.y, player.w, player.h);
+    button.pressed = playerOnBtn || cloneOnBtn;
+    door.open = button.pressed;
 
-    if (playerOnButton || anyCloneOnButton) {
-        button.pressed = true;
-        door.open = true;
-    } else {
-        button.pressed = false;
-        door.open = false;
-    }
-
-    // --- KAPI FİZİĞİ ---
+    // Kapı Duvarı
     if (!door.open) {
-        let boslukMiktari = 750; 
-        let duvarKalinligi = 170; 
-        let duvarSol = door.x + boslukMiktari;
-        let duvarSag = duvarSol + duvarKalinligi;
-
-        if (player.x + player.w > duvarSol && player.x < duvarSag) {
-            let playerCenter = player.x + player.w / 2;
-            let wallCenter = duvarSol + duvarKalinligi / 2;
-            if (playerCenter < wallCenter) {
-                player.x = duvarSol - player.w;
-            } else {
-                player.x = duvarSag;
-            }
+        let dSol = door.x + 750;
+        let dSag = dSol + 150;
+        if (player.x + player.w > dSol && player.x < dSag) {
+            if (player.x + player.w / 2 < dSol + 75) player.x = dSol - player.w;
+            else player.x = dSag;
             player.vx = 0;
         }
     }
 
-    // --- OYUN BİTİŞİ ---
-    if (player.x > gameWidth - 100) {
-        gameWon = true; 
-    }
-
+    if (player.x > gameWidth - 100) gameWon = true;
     frameCount++;
 }
 
-function createClone() {
-    if (gameWon) return;
-
-    allRecordings.push([...currentRecording]);
-
-    player.x = PLAYER_SETTINGS.startX;
-    player.y = PLAYER_SETTINGS.startY;
-    player.vx = 0;
-    player.vy = 0;
-
-    currentRecording = []; 
-    frameCount = 0; 
-}
-
-function resetLevel() {
-    player.x = PLAYER_SETTINGS.startX;
-    player.y = PLAYER_SETTINGS.startY;
-    door.open = false;
-    button.pressed = false;
-    player.vx = 0;
-    player.vy = 0;
-    
-    allRecordings = [];
-    currentRecording = [];
-    frameCount = 0;
-    gameWon = false; 
-}
-
 function draw() {
+    if (assetsLoaded < totalAssets || window.innerHeight > window.innerWidth) return;
     ctx.clearRect(0, 0, gameWidth, gameHeight);
+    ctx.drawImage(assets.bg, 0, 0);
+    if (!door.open) ctx.drawImage(assets.door, door.x, door.y);
+    ctx.drawImage(button.pressed ? assets.btnOn : assets.btnOff, button.x, button.y);
 
-    // ÇİZİM SIRASI
-    ctx.drawImage(assets.bg, 0, 0, gameWidth, gameHeight);
-    
-    // Kapı (Karakterin arkasında)
-    if (!door.open) {
-        ctx.drawImage(assets.door, door.x, door.y, door.w, door.h);
-    }
+    ctx.globalAlpha = 0.4;
+    allRecordings.forEach(run => {
+        if (frameCount < run.length) ctx.drawImage(assets.player, run[frameCount].x, run[frameCount].y);
+    });
+    ctx.globalAlpha = 1.0;
+    ctx.drawImage(assets.player, player.x, player.y);
 
-    let btnImg = button.pressed ? assets.btnOn : assets.btnOff;
-    ctx.drawImage(btnImg, button.x, button.y, button.w, button.h);
-    
-    // Klonlar
-    ctx.save();
-    ctx.globalAlpha = 0.4; 
-    for (let i = 0; i < allRecordings.length; i++) {
-        let run = allRecordings[i];
-        if (frameCount < run.length) {
-            let pos = run[frameCount];
-            ctx.drawImage(assets.player, pos.x, pos.y, player.w, player.h);
-        }
-    }
-    ctx.restore();
-
-    // Oyuncu
-    ctx.drawImage(assets.player, player.x, player.y, player.w, player.h);
-
-    // Game Over
     if (gameWon) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-        ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-        ctx.fillStyle = "white";
-        ctx.font = "bold 150px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("OYUN BİTTİ", gameWidth / 2, gameHeight / 2 - 50);
-
-        ctx.font = "50px Arial";
-        ctx.fillText("Tekrar oynamak için ekrana tıkla", gameWidth / 2, gameHeight / 2 + 50);
+        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0,0,gameWidth,gameHeight);
+        ctx.fillStyle = "white"; ctx.font = "80px Arial"; ctx.textAlign = "center";
+        ctx.fillText("OYUN BİTTİ - TIKLA", gameWidth/2, gameHeight/2);
     }
 }
 
@@ -319,65 +157,20 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
-// --- MOBİL DOKUNMATİK KONTROLLERİ ---
-const btnLeft = document.getElementById('leftBtn');
-const btnRight = document.getElementById('rightBtn');
-const btnAction = document.getElementById('actionBtn'); // Zıpla
-const btnClone = document.getElementById('cloneBtn');   // Klonla
-
-// Dokunmatik olayları (mouse ve touch destekli)
-function addTouch(btn, key, isClick = false) {
-    if(!btn) return;
-
-    // Dokunma Başladı
-    btn.addEventListener('touchstart', (e) => { 
-        e.preventDefault(); 
-        if(isClick) {
-            if(key === 'clone') createClone();
-        } else {
-            keys[key] = true; 
-        }
-        btn.style.transform = "scale(0.9)"; // Basma efekti
-    });
-
-    // Dokunma Bitti
-    btn.addEventListener('touchend', (e) => { 
-        e.preventDefault(); 
-        if(!isClick) keys[key] = false; 
-        btn.style.transform = "scale(1)"; 
-    });
-
-    // Mouse Desteği (PC testi için)
-    btn.addEventListener('mousedown', (e) => {
-        if(isClick) {
-            if(key === 'clone') createClone();
-        } else {
-            keys[key] = true;
-        }
-    });
-    btn.addEventListener('mouseup', () => { if(!isClick) keys[key] = false; });
+// Klonlama ve Restart
+function createClone() {
+    allRecordings.push([...currentRecording]);
+    player.x = PLAYER_SETTINGS.startX; player.y = PLAYER_SETTINGS.startY;
+    currentRecording = []; frameCount = 0;
 }
 
-addTouch(btnLeft, 'Left');
-addTouch(btnRight, 'Right');
-addTouch(btnAction, 'Up');
-addTouch(btnClone, 'clone', true); // True: Bu bir tuş değil, tetikleyici
+// Kontrolleri bağla
+document.getElementById('leftBtn').ontouchstart = (e) => { e.preventDefault(); keys.Left = true; };
+document.getElementById('leftBtn').ontouchend = () => keys.Left = false;
+document.getElementById('rightBtn').ontouchstart = (e) => { e.preventDefault(); keys.Right = true; };
+document.getElementById('rightBtn').ontouchend = () => keys.Right = false;
+document.getElementById('actionBtn').ontouchstart = (e) => { e.preventDefault(); keys.Up = true; };
+document.getElementById('actionBtn').ontouchend = () => keys.Up = false;
+document.getElementById('cloneBtn').ontouchstart = (e) => { e.preventDefault(); createClone(); };
 
-// Klavye (PC için)
-document.addEventListener('keydown', (e) => {
-    if (gameWon && (e.key === 'r' || e.key === 'R')) resetLevel();
-    if (e.key === 'ArrowRight' || e.key === 'd') keys.Right = true;
-    if (e.key === 'ArrowLeft' || e.key === 'a') keys.Left = true;
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.Up = true;
-    if (e.key === 'c' || e.key === 'C') createClone();
-});
-
-document.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowRight' || e.key === 'd') keys.Right = false;
-    if (e.key === 'ArrowLeft' || e.key === 'a') keys.Left = false;
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.Up = false;
-});
-
-// Restart için ekrana tıklama
-canvas.addEventListener('touchstart', () => { if (gameWon) resetLevel(); });
-canvas.addEventListener('mousedown', () => { if (gameWon) resetLevel(); });
+canvas.ontouchstart = () => { if(gameWon) location.reload(); };
