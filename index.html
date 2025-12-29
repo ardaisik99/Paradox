@@ -11,6 +11,8 @@
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
@@ -21,25 +23,32 @@
             overflow: hidden;
             font-family: 'Courier Prime', monospace;
             display: flex;
-            justify-content: center;
+            flex-direction: column; 
+            justify-content: flex-end; /* Alttan hizala */
             align-items: center;
             height: 100vh;
             width: 100vw;
-            user-select: none;
-            -webkit-user-select: none;
+            padding-bottom: 20px; /* Alttan boşluk */
         }
 
         #gameContainer {
-            position: relative;
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
-            border: 1px solid #333;
-            width: 100%; 
-            height: 100%;
-            max-width: 800px;
-            max-height: 450px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -60%); /* Hafif yukarıda ortala */
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            border: 1px solid #222; 
+            border-radius: 8px;
+            
+            /* EKRAN AYARLARI */
+            width: 95%; 
+            height: auto;
+            max-width: 850px;
+            max-height: 75vh;
             aspect-ratio: 16/9;
             overflow: hidden;
             background: #000;
+            z-index: 5;
         }
 
         canvas {
@@ -51,8 +60,8 @@
         /* --- UI LAYER --- */
         #gameUI {
             position: absolute;
-            top: 15px;
-            left: 20px;
+            top: 10px;
+            left: 15px;
             z-index: 10;
             pointer-events: none;
             opacity: 0; 
@@ -61,35 +70,54 @@
 
         #gameUI.visible { opacity: 1; }
 
-        h1 { font-size: 18px; margin: 0; text-shadow: 0 0 5px white; }
-        p { font-size: 12px; color: #aaa; margin: 2px 0; }
+        h1 { font-size: 16px; margin: 0; text-shadow: 0 0 5px white; }
+        p { font-size: 10px; color: #aaa; margin: 2px 0; }
 
         /* --- CONTROLS --- */
         .touch-controls {
-            position: absolute;
-            bottom: 0;
+            position: fixed;
+            bottom: 10px;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 25vh;
             pointer-events: none;
-            z-index: 20;
+            z-index: 999;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding: 20px 30px;
+            padding: 0 30px 20px 30px;
         }
 
-        .d-pad, .action-pad {
+        /* SOL Taraf: Yön Tuşları */
+        .d-pad {
             pointer-events: auto;
             display: flex;
             gap: 15px;
+            align-items: center;
         }
 
+        /* SAĞ Taraf: Aksiyon Tuşları */
+        .action-pad {
+            pointer-events: auto;
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        /* COL ve R butonlarını YAN YANA dizmek için (GÜNCELLENDİ) */
+        .utility-btns {
+            display: flex;
+            flex-direction: row; /* YAN YANA */
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        /* Ortak Buton Stili */
         .touch-btn {
-            width: 65px;
-            height: 65px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            width: 55px;
+            height: 55px;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
             border-radius: 50%;
             display: flex;
             justify-content: center;
@@ -99,32 +127,49 @@
             touch-action: none;
             transition: transform 0.1s, background 0.1s;
             cursor: pointer;
+            backdrop-filter: blur(2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Özel Renklendirmeler */
+        #btnRewind { color: #ff8888; font-size: 20px; font-weight: bold; background: rgba(255, 100, 100, 0.15); }
+        #btnCollision { font-size: 12px; font-weight: bold; letter-spacing: -0.5px; }
+        #btnJump { 
+            background: rgba(255, 255, 255, 0.25); 
+            font-size: 32px; 
+            width: 70px; 
+            height: 70px; 
         }
 
         .touch-btn:active, .touch-btn.active {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(0.95);
-            border-color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.90);
         }
 
         /* --- MENUS --- */
         #menuToggleBtn {
             position: absolute;
-            top: 15px;
-            right: 20px;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 100;
-            width: 45px;
-            height: 45px;
-            background: rgba(0,0,0,0.6);
-            border: 1px solid #555;
-            color: white;
-            font-size: 24px;
-            display: flex;
+            width: 50px;
+            height: 30px;
+            background: rgba(30, 30, 30, 0.8);
+            border: none;
+            border-radius: 0 0 10px 10px;
+            color: #aaa;
+            font-size: 18px;
+            display: none; 
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            border-radius: 8px;
             pointer-events: auto;
+        }
+
+        #menuToggleBtn:active {
+            background: rgba(60, 60, 60, 0.9);
+            color: #fff;
         }
 
         .menu-screen {
@@ -133,8 +178,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(5, 5, 5, 0.92);
-            backdrop-filter: blur(8px);
+            background: rgba(5, 5, 5, 0.95);
+            backdrop-filter: blur(10px);
             z-index: 50;
             display: none; 
             flex-direction: column;
@@ -150,25 +195,36 @@
             pointer-events: auto;
         }
 
+        /* --- GLITCH ANIMATION --- */
+        @keyframes textGlitch {
+            0% { text-shadow: 2px 0 #ff0000, -2px 0 #00ffff; transform: translate(0,0); }
+            20% { text-shadow: 2px 0 #ff0000, -2px 0 #00ffff; transform: translate(0,0); }
+            21% { text-shadow: -2px 0 #ff0000, 2px 0 #00ffff; transform: translate(-2px,2px); }
+            22% { text-shadow: 2px 0 #ff0000, -2px 0 #00ffff; transform: translate(2px,-2px); }
+            23% { text-shadow: 0 0 #fff; transform: translate(0,0); }
+            100% { text-shadow: 0 0 #fff; transform: translate(0,0); }
+        }
+
         .menu-title {
-            font-size: 48px;
+            font-size: 50px;
             font-weight: 700;
             letter-spacing: 8px;
             color: #fff;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-            margin-bottom: 40px;
+            margin-bottom: 30px;
+            animation: textGlitch 3s infinite linear alternate-reverse;
+            text-align: center;
         }
 
         .btn {
             background: transparent;
             border: 1px solid rgba(255, 255, 255, 0.4);
             color: #ddd;
-            padding: 15px 0;
+            padding: 12px 0;
             font-family: 'Courier Prime', monospace;
-            font-size: 18px;
-            margin: 10px;
+            font-size: 16px;
+            margin: 8px;
             cursor: pointer;
-            width: 240px;
+            width: 200px;
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 3px;
@@ -191,9 +247,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 240px;
+            width: 200px;
             margin-bottom: 20px;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .toggle-switch {
@@ -232,8 +288,8 @@
         }
         
         .level-btn {
-            width: 70px;
-            padding: 15px 0;
+            width: 60px;
+            padding: 10px 0;
             margin: 0;
         }
 
@@ -244,7 +300,7 @@
             width: 100vw; height: 100vh;
             background: #000;
             color: #fff;
-            z-index: 999;
+            z-index: 2000;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -252,13 +308,25 @@
             letter-spacing: 5px;
         }
 
+        .loader {
+            border: 4px solid #333;
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         #rotateWarning {
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
             background: #111;
             color: #fff;
-            z-index: 1000;
+            z-index: 3000;
             display: none;
             flex-direction: column;
             justify-content: center;
@@ -267,12 +335,24 @@
             padding: 20px;
         }
 
+        .rotate-icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+            animation: rotatePhone 2s infinite ease-in-out;
+        }
+
+        @keyframes rotatePhone {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(-90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
         @media screen and (orientation: portrait) {
             #rotateWarning { display: flex; }
             #gameContainer { display: none; }
+            .touch-controls { display: none; }
         }
 
-        /* Overlay Effects */
         .scanlines {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
@@ -286,7 +366,6 @@
             pointer-events: none; z-index: 4;
         }
 
-        /* Level Indicator Animation */
         #levelIndicator {
             position: absolute;
             top: 50%; left: 50%;
@@ -307,13 +386,37 @@
 <body>
 
     <!-- LOADING SCREEN -->
-    <div id="loadingScreen">LOADING...</div>
+    <div id="loadingScreen">
+        <div class="loader"></div>
+        <div>LOADING...</div>
+    </div>
 
     <!-- ROTATE WARNING -->
     <div id="rotateWarning">
         <div class="rotate-icon">📱</div>
         <h2>ROTATE DEVICE</h2>
         <p>Landscape mode required</p>
+    </div>
+
+    <!-- TOUCH CONTROLS (Container Dışında - Altta) -->
+    <div class="touch-controls">
+        <!-- Sol: Yön Tuşları -->
+        <div class="d-pad">
+            <div class="touch-btn" id="btnLeft">←</div>
+            <div class="touch-btn" id="btnRight">→</div>
+        </div>
+        
+        <!-- Sağ: Aksiyon Tuşları (YAN YANA) -->
+        <div class="action-pad">
+            <!-- Yardımcı Butonlar (COL ve R YAN YANA) -->
+            <div class="utility-btns">
+                <div class="touch-btn" id="btnCollision">COL</div>
+                <div class="touch-btn" id="btnRewind">R</div>
+            </div>
+
+            <!-- Zıplama Butonu - EN SAĞDA -->
+            <div class="touch-btn" id="btnJump">↑</div>
+        </div>
     </div>
 
     <div id="gameContainer">
@@ -323,7 +426,7 @@
         
         <div id="levelIndicator">LEVEL 1</div>
 
-        <!-- TOP MENU BUTTON -->
+        <!-- TOP MENU BUTTON (Ortada) -->
         <div id="menuToggleBtn">☰</div>
 
         <!-- IN-GAME UI -->
@@ -331,19 +434,6 @@
             <h1 id="levelText">LEVEL 1</h1>
             <p id="cloneText">CLONES: 0</p>
             <p id="collisionText" style="color:#888">COLLISION: OFF</p>
-        </div>
-
-        <!-- TOUCH CONTROLS -->
-        <div class="touch-controls">
-            <div class="d-pad">
-                <div class="touch-btn" id="btnLeft">←</div>
-                <div class="touch-btn" id="btnRight">→</div>
-                <div class="touch-btn" id="btnJump" style="margin-left: 20px;">↑</div>
-            </div>
-            <div class="action-pad">
-                <div class="touch-btn" id="btnCollision" style="font-size: 16px;">COL</div>
-                <div class="touch-btn" id="btnRewind" style="color: #ff9999;">R</div>
-            </div>
         </div>
 
         <!-- MAIN MENU -->
@@ -400,22 +490,19 @@
     <script>
         // --- SECURE INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Bind all events safely after DOM loads
             bindEvents();
             
-            // Telegram Init
             if (window.Telegram && window.Telegram.WebApp) {
                 const tg = window.Telegram.WebApp;
                 tg.ready();
                 try { tg.expand(); } catch(e){}
+                document.body.style.backgroundColor = tg.backgroundColor || '#050505';
             }
 
-            // Force hide loading after 1.5s
             setTimeout(() => {
                 document.getElementById('loadingScreen').style.display = 'none';
             }, 1000);
 
-            // Start Game Loop
             loadLevel(0);
             gameState = 'MENU';
             loop();
@@ -427,8 +514,12 @@
             document.getElementById('btnLevelsMain').addEventListener('click', openLevels);
             document.getElementById('btnSettingsMain').addEventListener('click', openSettings);
 
+            // Menu Toggle
+            const menuBtn = document.getElementById('menuToggleBtn');
+            menuBtn.addEventListener('click', toggleIngameMenu);
+            menuBtn.addEventListener('touchstart', (e) => { e.preventDefault(); toggleIngameMenu(); });
+
             // Pause Menu
-            document.getElementById('menuToggleBtn').addEventListener('click', toggleIngameMenu);
             document.getElementById('btnResume').addEventListener('click', resumeGame);
             document.getElementById('btnRestart').addEventListener('click', restartLevel);
             document.getElementById('btnSettingsPause').addEventListener('click', openSettings);
@@ -439,24 +530,20 @@
             document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
             document.getElementById('soundToggle').addEventListener('change', (e) => toggleSound(e.target.checked));
 
-            // Level Selection
             document.getElementById('lvlBtn0').addEventListener('click', () => selectLevel(0));
             document.getElementById('lvlBtn1').addEventListener('click', () => selectLevel(1));
             document.getElementById('lvlBtn2').addEventListener('click', () => selectLevel(2));
 
-            // Win Screen
             document.getElementById('btnWinMain').addEventListener('click', goToMainMenu);
 
-            // Touch Controls (Visual Feedback + Logic)
+            // Controls
             bindTouchControl('btnLeft', 'left');
             bindTouchControl('btnRight', 'right');
             bindTouchControl('btnJump', 'jump');
             
-            // Actions
             const btnRewind = document.getElementById('btnRewind');
             btnRewind.addEventListener('touchstart', (e) => { e.preventDefault(); createCloneAndReset(); btnRewind.classList.add('active'); });
             btnRewind.addEventListener('touchend', (e) => { e.preventDefault(); btnRewind.classList.remove('active'); });
-            // Mouse fallback for PC testing
             btnRewind.addEventListener('mousedown', () => createCloneAndReset());
 
             const btnCollision = document.getElementById('btnCollision');
@@ -477,36 +564,34 @@
                 touchKeys[key] = false; 
                 btn.classList.remove('active'); 
             });
-            // Fallback for mouse on PC
             btn.addEventListener('mousedown', () => { touchKeys[key] = true; btn.classList.add('active'); });
             btn.addEventListener('mouseup', () => { touchKeys[key] = false; btn.classList.remove('active'); });
             btn.addEventListener('mouseleave', () => { touchKeys[key] = false; btn.classList.remove('active'); });
         }
 
-        // --- GAME ENGINE ---
+        // --- GAME VARIABLES ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // UI Elements
+        // UI Refs
         const mainMenu = document.getElementById('mainMenu');
         const ingameMenu = document.getElementById('ingameMenu');
         const levelsMenu = document.getElementById('levelsMenu');
         const settingsMenu = document.getElementById('settingsMenu');
         const winScreen = document.getElementById('winScreen');
-        const winButtons = document.getElementById('winButtons'); // Fixed: Added missing definition
+        const winButtons = document.getElementById('winButtons');
         const gameUI = document.getElementById('gameUI');
         const levelTextUI = document.getElementById('levelText');
         const cloneTextUI = document.getElementById('cloneText');
         const collisionTextUI = document.getElementById('collisionText');
         const levelIndicator = document.getElementById('levelIndicator');
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
 
-        // Constants
         const GRAVITY = 0.6;
         const FRICTION = 0.8;
         const SPEED = 3; 
         const JUMP_FORCE = 12;
 
-        // State
         let gameState = 'MENU';
         let currentLevelIndex = 0;
         let unlockedLevels = 1;
@@ -517,7 +602,6 @@
         let cloneCollisionEnabled = false;
         let soundEnabled = true;
 
-        // Entities
         let player, clones = [], platforms = [], buttons = [], doors = [], particles = [], goal = null;
 
         // --- AUDIO ---
@@ -585,12 +669,13 @@
             }
         ];
 
-        // --- MENU ACTIONS ---
+        // --- MENU LOGIC ---
         function toggleIngameMenu() {
             playSound('click');
             if (gameState === 'PLAYING') {
                 gameState = 'PAUSED';
                 ingameMenu.classList.add('active');
+                menuToggleBtn.style.display = 'none';
             } else if (gameState === 'PAUSED') {
                 resumeGame();
             }
@@ -600,6 +685,7 @@
             playSound('click');
             gameState = 'PLAYING';
             ingameMenu.classList.remove('active');
+            menuToggleBtn.style.display = 'flex';
         }
 
         function goToMainMenu() {
@@ -611,6 +697,7 @@
             settingsMenu.classList.remove('active');
             winScreen.classList.remove('active');
             gameUI.classList.remove('visible');
+            menuToggleBtn.style.display = 'none';
         }
 
         function restartLevel() {
@@ -624,8 +711,10 @@
             loadLevel(currentLevelIndex);
             gameState = 'PLAYING';
             mainMenu.classList.remove('active');
+            levelsMenu.classList.remove('active');
             gameUI.classList.add('visible');
             winScreen.classList.remove('active');
+            menuToggleBtn.style.display = 'flex';
         }
 
         function openLevels() {
@@ -672,8 +761,7 @@
             if (index >= unlockedLevels) return;
             playSound('click');
             currentLevelIndex = index;
-            levelsMenu.classList.remove('active');
-            startGame();
+            startGame(); 
         }
 
         function toggleSound(enabled) {
@@ -689,16 +777,17 @@
             document.getElementById('btnCollision').style.background = cloneCollisionEnabled ? 'rgba(100, 255, 100, 0.3)' : '';
         }
 
-        // --- GAME LOGIC ---
+        // --- GAME LOOP ---
         function loadLevel(index) {
             if (index >= LEVELS.length) { gameComplete(); return; }
             const ld = LEVELS[index];
             platforms=[]; doors=[]; buttons=[]; clones=[]; particles=[];
-            frameCount=0; gameOver=false;
+            frameCount=0; gameOver=false; goal = null;
+
             ld.platforms.forEach(p => platforms.push(new GameObject(p.x, p.y, p.w, p.h)));
             ld.doors.forEach(d => doors.push(new Door(d.x, d.y, d.h, d.id)));
             ld.buttons.forEach(b => buttons.push(new Button(b.x, b.y, b.target)));
-            goal = ld.goal ? new Goal(ld.goal.x, ld.goal.y) : null;
+            if (ld.goal) goal = new Goal(ld.goal.x, ld.goal.y);
             player = new Player(ld.start.x, ld.start.y);
             
             levelTextUI.innerText = `LEVEL ${index + 1}`;
@@ -734,6 +823,33 @@
             return (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y);
         }
 
+        function levelComplete() {
+            if (gameOver) return;
+            gameOver = true;
+            playSound('win');
+            
+            if (currentLevelIndex + 1 >= unlockedLevels) unlockedLevels = currentLevelIndex + 2;
+            
+            if (currentLevelIndex + 1 >= LEVELS.length) {
+                gameComplete();
+            } else {
+                document.getElementById('winTitle').innerText="LEVEL COMPLETED";
+                document.getElementById('winMessage').innerText="Next Paradox...";
+                winButtons.style.display='none';
+                winScreen.classList.add('active');
+                setTimeout(()=>{ winScreen.classList.remove('active'); currentLevelIndex++; loadLevel(currentLevelIndex); }, 2000);
+            }
+        }
+
+        function gameComplete() {
+            gameState = 'MENU';
+            document.getElementById('winTitle').innerText="GAME OVER";
+            document.getElementById('winMessage').innerText="All Paradoxes Solved!";
+            winButtons.style.display='block';
+            winScreen.classList.add('active');
+            menuToggleBtn.style.display = 'none';
+        }
+
         function update() {
             if (gameState !== 'PLAYING' || gameOver) return;
             
@@ -745,7 +861,7 @@
                 jump: keys['ArrowUp'] || keys['KeyW'] || keys['Space'] || touchKeys.jump
             };
 
-            clones.forEach(c => c.update(null, platforms, doors, frameCount));
+            clones.forEach(clone => clone.update(null, platforms, doors, frameCount));
             player.update(input, platforms, doors, frameCount);
 
             const entities = [player, ...clones];
@@ -757,7 +873,7 @@
         function draw() {
             ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 800, 450);
             ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(100, 100, 50, 300); ctx.fillRect(600, 50, 80, 400); // Decor
+            ctx.fillRect(100, 100, 50, 300); ctx.fillRect(600, 50, 80, 400); 
             platforms.forEach(p => p.draw(ctx));
             buttons.forEach(b => b.draw(ctx));
             doors.forEach(d => d.draw(ctx));
@@ -781,7 +897,6 @@
         });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; keys[e.code] = false; });
 
-        // --- CLASSES (Minimal) ---
         class GameObject {
             constructor(x, y, w, h, c='black') { this.x=x; this.y=y; this.width=w; this.height=h; this.color=c; }
             draw(ctx) { ctx.fillStyle=this.color; ctx.fillRect(this.x,this.y,this.width,this.height); }
@@ -824,20 +939,36 @@
                         let st=this.history[frame];
                         let tr={x:st.x, y:st.y, width:15, height:35};
                         let block=false;
+                        // Klon kapı çarpışma kontrolü (Basit engel)
                         doors.forEach(d => { if(d.getCurrentHeight()>5 && checkRectCollision(tr, {x:d.x, y:d.y, width:d.width, height:d.getCurrentHeight()})) block=true; });
                         if(!block) { this.x=st.x; this.y=st.y; }
-                    } else { if(!this.isExpired) { this.isExpired=true; for(let i=0;i<10;i++) particles.push(new Particle(this.x,this.y)); } }
+                        if (Math.random() < 0.1) particles.push(new Particle(this.x + 7, this.y + 35));
+                    } else { if(!this.isExpired) { this.isExpired=true; for(let i=0;i<15;i++) particles.push(new Particle(this.x+Math.random()*15,this.y+Math.random()*35)); } }
                 } else {
                     if(inp.left) this.vx-=1; else if(inp.right) this.vx+=1; else this.vx*=FRICTION;
                     if(this.vx>SPEED) this.vx=SPEED; if(this.vx<-SPEED) this.vx=-SPEED;
                     this.vy+=GRAVITY;
-                    if(inp.jump && !this.wjp && this.isGrounded) { this.vy=-JUMP_FORCE; this.isGrounded=false; playSound('jump'); }
+                    if(inp.jump && !this.wjp && this.isGrounded) { this.vy=-JUMP_FORCE; this.isGrounded=false; playSound('jump'); for(let i=0;i<5;i++) particles.push(new Particle(this.x+7,this.y+35)); }
                     this.wjp=inp.jump;
                     this.x+=this.vx; this.y+=this.vy; this.isGrounded=false;
                     
+                    if ((inp.left || inp.right) && this.isGrounded && Math.random() < 0.3) {
+                         particles.push(new Particle(this.x + 7, this.y + 35));
+                    }
+
                     let obs=[...platforms];
                     doors.forEach(d=>{ if(d.getCurrentHeight()>5) obs.push({x:d.x, y:d.y, width:d.width, height:d.getCurrentHeight()}); });
-                    if(cloneCollisionEnabled) clones.forEach(c=>{ if(!c.isExpired) obs.push(c); });
+                    
+                    if(cloneCollisionEnabled) {
+                        clones.forEach(c => {
+                            if(!c.isExpired && checkRectCollision(this, c)) {
+                                let pb = this.y + this.height - this.vy;
+                                if (pb <= c.y + 10 && this.vy >= 0) {
+                                    this.y = c.y - this.height; this.vy = 0; this.isGrounded = true;
+                                }
+                            }
+                        });
+                    }
 
                     obs.forEach(p => {
                         if(checkRectCollision(this, p)) {
@@ -847,22 +978,9 @@
                             else { if(this.vx>0) this.x=p.x-this.width; else this.x=p.x+p.width; this.vx=0; }
                         }
                     });
+
                     if(this.x<0) this.x=0; if(this.x>800) this.x=800-this.width;
-                    if(goal && checkRectCollision(this, goal)) { 
-                        gameOver=true; playSound('win');
-                        if(currentLevelIndex+1>=unlockedLevels) unlockedLevels=currentLevelIndex+2;
-                        if(currentLevelIndex+1>=LEVELS.length) {
-                            document.getElementById('winTitle').innerText="GAME OVER";
-                            document.getElementById('winMessage').innerText="All Paradoxes Solved!";
-                            winButtons.style.display='block';
-                        } else {
-                            document.getElementById('winTitle').innerText="LEVEL COMPLETED";
-                            document.getElementById('winMessage').innerText="Next Paradox...";
-                            winButtons.style.display='none';
-                            setTimeout(()=>{ winScreen.classList.remove('active'); currentLevelIndex++; loadLevel(currentLevelIndex); }, 2000);
-                        }
-                        winScreen.classList.add('active');
-                    }
+                    if(goal && checkRectCollision(this, goal)) levelComplete();
                     if(this.y>450) resetLevel(false);
                     this.history.push({x:this.x, y:this.y});
                 }
