@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0; padding: 0;
+    background-color: #000;
+    color: #fff;
+    overflow: hidden;
+    font-family: 'Courier Prime', monospace;
+    height: 100vh; width: 100vw;
+    user-select: none;
+}
+
+#gameContainer {
+    position: relative;
+    width: 100vw; height: 100vh;
+    background: linear-gradient(to bottom, #252525 0%, #050505 100%);
+    overflow: hidden;
+}
+
+canvas { 
+    display: block; width: 100%; height: 100%; 
+    filter: contrast(1.1) brightness(1.1);
+}
+
+#gameUI {
+    position: absolute; top: 30px; left: 40px;
+    z-index: 20; pointer-events: none;
+    opacity: 0; transition: opacity 0.5s;
+}
+#gameUI.visible { opacity: 1; }
+
+h1 { 
+    font-size: 32px; margin: 0; color: #fff; 
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    font-weight: bold; letter-spacing: 2px;
+}
+p { 
+    font-size: 14px; color: #ccc; margin: 5px 0; 
+    font-weight: bold; letter-spacing: 1px;
+}
+
+/* MENUS */
+.menu-screen {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #000; 
+    z-index: 50; display: none;
+    flex-direction: column; justify-content: center; align-items: center;
+    opacity: 0; transition: opacity 0.5s;
+}
+.menu-screen.active { display: flex; opacity: 1; pointer-events: auto; }
+
+.menu-title {
+    font-size: 90px; font-weight: 700;
+    letter-spacing: 12px; color: #fff;
+    text-shadow: 0 0 30px rgba(255,255,255,0.3);
+    margin-bottom: 50px;
+    /* ANİMASYON GERİ GELDİ */
+    animation: pulseTitle 4s infinite ease-in-out;
+}
+
+.btn {
+    background: transparent;
+    border: 1px solid #666;
+    color: #ddd; padding: 16px 0;
+    font-family: 'Courier Prime', monospace;
+    font-size: 22px; margin: 12px; cursor: pointer;
+    width: 280px; text-align: center;
+    text-transform: uppercase; letter-spacing: 3px;
+    position: relative; z-index: 60; transition: all 0.2s;
+}
+.btn:hover { 
+    background: #fff; color: #000; border-color: #fff;
+    box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    transform: scale(1.05); 
+}
+.btn:active { transform: scale(0.95); }
+.btn.locked { opacity: 0.3; border-color: #333; color: #444; pointer-events: none; }
+
+.vignette {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, transparent 60%, rgba(0,0,0,1) 100%);
+    pointer-events: none; z-index: 15;
+}
+
+.setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 280px; margin-bottom: 25px; font-size: 18px; color: #ccc;
+}
+.toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #222; transition: .4s; border: 1px solid #444;
+}
+.slider:before {
+    position: absolute; content: "";
+    height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background-color: #aaa; transition: .4s;
+}
+input:checked + .slider { background-color: #555; border-color: #fff; }
+input:checked + .slider:before { transform: translateX(24px); background-color: #fff; }
+
+.level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+.level-btn { width: 80px; padding: 15px 0; margin: 0; }
+
+#loadingScreen {
+    position: fixed; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #000; color: #fff;
+    z-index: 999; display: flex;
+    justify-content: center; align-items: center;
+    font-size: 24px; letter-spacing: 6px;
+}
+#levelIndicator {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px; color: #fff;
+    opacity: 0; pointer-events: none; z-index: 30;
+    text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    letter-spacing: 10px; transition: opacity 1s;
+    font-weight: bold;
+}
+#winButtons { display: none; margin-top: 30px; }
+
+/* ANİMASYON KEYFRAMES */
+@keyframes pulseTitle {
+    0%, 100% { 
+        transform: scale(1); 
+        text-shadow: 0 0 20px rgba(255,255,255,0.2); 
+        opacity: 0.8;
+    }
+    50% { 
+        transform: scale(1.05); 
+        text-shadow: 0 0 50px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,1);
+        opacity: 1;
+    }
+}
