@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Clone - Noir</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
     <div id="loadingScreen">LOADING...</div>
@@ -14,7 +16,7 @@
         <canvas id="gameCanvas" width="800" height="450"></canvas>
         <div class="vignette"></div>
         <div class="scanlines"></div>
-        
+
         <div id="levelIndicator">LEVEL 1</div>
 
         <div id="gameUI">
@@ -43,9 +45,21 @@
         </div>
 
         <div id="levelsMenu" class="menu-screen">
-            <h2 style="color:white; margin-bottom:40px; letter-spacing:5px;">SELECT LEVEL</h2>
-            <div class="level-grid"></div>
-            <button id="btnBackLevels" class="btn" style="margin-top:40px;">BACK</button>
+            <!-- CONCEPT SELECTION VIEW -->
+            <div id="conceptSelectView"
+                style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <h2 style="color:white; margin-bottom:40px; letter-spacing:5px;">SELECT CONCEPT</h2>
+                <div class="concept-list"
+                    style="display: flex; flex-direction: column; gap: 20px; width: 100%; align-items: center;"></div>
+                <button id="btnBackToMain" class="btn" style="margin-top:40px;">MAIN MENU</button>
+            </div>
+
+            <!-- LEVEL GRID VIEW (Hidden by default) -->
+            <div id="levelSelectView" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+                <h2 id="selectedConceptTitle" style="color:white; margin-bottom:20px; letter-spacing:5px;">CONCEPT</h2>
+                <div class="level-grid"></div>
+                <button id="btnBackToConcepts" class="btn" style="margin-top:40px;">BACK</button>
+            </div>
         </div>
 
         <div id="settingsMenu" class="menu-screen">
@@ -69,15 +83,20 @@
         </div>
     </div>
 
-    <script src="levels/level1.js"></script>
-    <script src="levels/level2.js"></script>
-    <script src="levels/level3.js"></script>
-    <script src="levels/level4.js"></script>
-    <script src="levels/level5.js"></script> 
-    <script src="levels/level6.js"></script> 
-    <script src="levels/level7.js"></script>
-    <script src="levels/level8.js"></script>
+    <script src="levels/black/level1.js"></script>
+    <script src="levels/black/level2.js"></script>
+    <script src="levels/black/level3.js"></script>
+    <script src="levels/black/level4.js"></script>
+    <script src="levels/black/level5.js"></script>
+    <script src="levels/black/level6.js"></script>
+    <script src="levels/black/level7.js"></script>
+    <script src="levels/black/level8.js"></script>
+    <script src="levels/black/level9.js"></script>
+    <script src="levels/black/level10.js"></script>
+    <script src="levels/black/black_finish.js"></script>
+    <script src="levels/white/level11.js"></script>
 
     <script src="script.js"></script>
 </body>
+
 </html>
