@@ -30,7 +30,8 @@ let COLORS = {
     leverBase: '#222222',
     leverStick: '#cccccc',
     buttonActive: '#aaaaaa', // Default
-    portal: '#00ffff'
+    portal: '#00ffff',
+    leverKnobInactive: '#888888'
 };
 
 function setTheme(name) {
@@ -51,6 +52,7 @@ function setTheme(name) {
         COLORS.movingPlat = '#bbbbbb'; // Lighter platform
         COLORS.leverBase = '#ffffff';
         COLORS.portal = '#000000';
+        COLORS.leverKnobInactive = '#333333';
     } else {
         COLORS.dust = '#ffffff';
         COLORS.door = '#222222';
@@ -58,6 +60,7 @@ function setTheme(name) {
         COLORS.movingPlat = '#333333';
         COLORS.leverBase = '#222222';
         COLORS.portal = '#ffffff'; // White portal for Noir theme
+        COLORS.leverKnobInactive = '#888888';
     }
 }
 
@@ -361,7 +364,7 @@ function loadLevel(index) {
     ld.platforms.forEach(p => platforms.push(new GameObject(p.x, p.y, p.w, p.h, COLORS.solid)));
     ld.doors.forEach(d => doors.push(new Door(d.x, d.y, d.h, d.id, d.req, d.sequence)));
     ld.buttons.forEach(b => buttons.push(new Button(b.x, b.y, b.target, b.isCeiling, b.id)));
-    if (ld.movingPlatforms) ld.movingPlatforms.forEach(mp => movingPlatforms.push(new MovingPlatform(mp.x, mp.y, mp.w, mp.h, mp.endX, mp.endY, mp.triggerId)));
+    if (ld.movingPlatforms) ld.movingPlatforms.forEach(mp => movingPlatforms.push(new MovingPlatform(mp.x, mp.y, mp.w, mp.h, mp.endX, mp.endY, mp.triggerId, mp.weightSensitive, mp.requiredWeight)));
     if (ld.levers) ld.levers.forEach(l => levers.push(new Lever(l.x, l.y, l.triggerId)));
     if (ld.portals) ld.portals.forEach(p => portals.push(new Portal(p.x, p.y, p.w, p.h, p.targetId, p.id)));
     if (ld.texts) ld.texts.forEach(t => texts.push(new TextObject(t.x, t.y, t.text, t.size, t.color)));
@@ -403,7 +406,9 @@ function update() {
     buttons.forEach(b => b.update(entities));
     doors.forEach(d => d.update(buttons));
     levers.forEach(l => l.update(entities));
-    movingPlatforms.forEach(mp => mp.update(buttons, levers));
+    levers.forEach(l => l.update(entities));
+    movingPlatforms.forEach(mp => mp.update(buttons, levers, entities));
+    portals.forEach(p => p.update());
     portals.forEach(p => p.update());
 
     clones.forEach(c => c.update(null, platforms, doors, movingPlatforms, portals, frameCount));
@@ -514,7 +519,7 @@ class Lever extends GameObject {
     draw(ctx) {
         ctx.save(); ctx.translate(this.x + this.width / 2, this.y + 5); ctx.rotate(this.stickAngle);
         ctx.fillStyle = COLORS.leverStick; ctx.fillRect(-3, -35, 6, 40);
-        ctx.beginPath(); ctx.arc(0, -35, 6, 0, Math.PI * 2); ctx.fillStyle = this.isActive ? COLORS.rimLight : '#888';
+        ctx.beginPath(); ctx.arc(0, -35, 6, 0, Math.PI * 2); ctx.fillStyle = this.isActive ? COLORS.rimLight : COLORS.leverKnobInactive;
         if (this.isActive) { ctx.shadowBlur = 15; ctx.shadowColor = COLORS.rimLight; }
         ctx.fill(); ctx.restore();
         ctx.fillStyle = COLORS.leverBase; ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -523,14 +528,31 @@ class Lever extends GameObject {
 }
 
 class MovingPlatform extends GameObject {
-    constructor(x, y, w, h, endX, endY, triggerId) {
+    constructor(x, y, w, h, endX, endY, triggerId, weightSensitive = false, requiredWeight = 1) {
         super(x, y, w, h, COLORS.movingPlat);
         this.startX = x; this.startY = y; this.endX = endX; this.endY = endY; this.triggerId = triggerId; this.vx = 0; this.vy = 0;
+        this.weightSensitive = weightSensitive;
+        this.requiredWeight = requiredWeight;
     }
-    update(btns, levers) {
+    update(btns, levers, entities) {
         let active = false;
-        btns.forEach(b => { if (b.targetDoorId === this.triggerId && b.isPressed) active = true; });
-        if (levers) { levers.forEach(l => { if (l.triggerId === this.triggerId && l.isActive) active = true; }); }
+        if (this.triggerId) {
+            btns.forEach(b => { if (b.targetDoorId === this.triggerId && b.isPressed) active = true; });
+            if (levers) { levers.forEach(l => { if (l.triggerId === this.triggerId && l.isActive) active = true; }); }
+        } else {
+            active = true; // Default active if no trigger, but subject to weight
+        }
+
+        if (this.weightSensitive && entities) {
+            let count = 0;
+            // Catch entities slightly above or sinking into the platform
+            let ridingBox = { x: this.x, y: this.y - 10, width: this.width, height: this.height + 20 };
+            entities.forEach(e => {
+                if (!e.isExpired && checkRectCollision(ridingBox, e)) count++;
+            });
+            if (count !== this.requiredWeight) active = false;
+        }
+
         let tx = active ? this.endX : this.startX; let ty = active ? this.endY : this.startY;
         let dx = tx - this.x; let dy = ty - this.y;
         let speed = 2.0;
@@ -574,7 +596,7 @@ class Goal extends GameObject {
         } else {
             let active = false;
             buttons.forEach(b => { if (b.targetDoorId === this.triggerId && b.isPressed) active = true; });
-            // Levers... for now strict button logic for goal as requested
+            if (levers) { levers.forEach(l => { if (l.triggerId === this.triggerId && l.isActive) active = true; }); }
             this.isActive = active;
         }
     }
@@ -706,13 +728,33 @@ class Player {
         });
         if (movingPlats) {
             movingPlats.forEach(mp => {
-                if (checkRectCollision(this, mp)) {
+                // Expanded check for "riding" availability (sticky check)
+                let checkBounds = { x: mp.x, y: mp.y, width: mp.width, height: mp.height };
+                // If we are falling or on ground, check slightly below to snap to moving platform moving down
+                if (this.vy >= 0) checkBounds.y -= 5;
+
+                if (checkRectCollision(this, checkBounds)) {
                     let ox = (this.width + mp.width) / 2 - Math.abs((this.x + this.width / 2) - (mp.x + mp.width / 2));
                     let oy = (this.height + mp.height) / 2 - Math.abs((this.y + this.height / 2) - (mp.y + mp.height / 2));
-                    if (ox < oy) { if (this.x < mp.x) this.x = mp.x - this.width; else this.x = mp.x + mp.width; this.vx = 0; }
-                    else {
-                        if (this.y < mp.y) { this.y = mp.y - this.height; this.vy = 0; this.isGrounded = true; this.x += mp.vx; this.y += mp.vy; }
-                        else { this.y = mp.y + mp.height; this.vy = 0; }
+
+                    // Bias towards vertical collision if we are roughly on top
+                    if (ox < oy && ox < 10) { // Side collision or barely touching
+                        if (this.x < mp.x) this.x = mp.x - this.width; else this.x = mp.x + mp.width; this.vx = 0;
+                    } else {
+                        // Vertical collision (Landing or Head hit)
+                        // Note: Because we expanded bounds upwards (y -= 5), we need to be careful not to snap to top if we are actually hitting side/bottom.
+                        // Strictly check if we are *above* the platform center logic
+                        if (this.y + this.height <= mp.y + mp.height / 2 + 10) {
+                            // Snap to top
+                            this.y = mp.y - this.height;
+                            this.vy = 0;
+                            this.isGrounded = true;
+                            this.x += mp.vx;
+                            this.y += mp.vy;
+                        } else {
+                            // Hit bottom
+                            this.y = mp.y + mp.height; this.vy = 0;
+                        }
                     }
                 }
             });
@@ -739,13 +781,34 @@ class Player {
 
     update(inp, plats, doors, movingPlats, portals, frame) {
         if (this.isClone) {
-            if (frame === 0) this.isExpired = false; if (this.isExpired) return;
+            if (frame === 0) {
+                this.isExpired = false;
+                if (this.history.length > 0) { this.x = this.history[0].x; this.y = this.history[0].y; }
+            }
+            if (this.isExpired) return;
+
             if (frame < this.history.length) {
-                let st = this.history[frame]; let tr = { x: st.x, y: st.y, width: 20, height: 35 }; let blocked = false;
-                doors.forEach(d => { if (d.getCurrentHeight() > 5 && checkRectCollision(tr, { x: d.x, y: d.y, width: d.width, height: d.getCurrentHeight() })) blocked = true; });
-                if (!blocked) { this.x = st.x; this.y = st.y; this.vx = st.vx || 0; }
-                if (frame > 0) { let prev = this.history[frame - 1]; this.vx = this.x - prev.x; }
-            } else { if (!this.isExpired) { this.isExpired = true; for (let i = 0; i < 8; i++) particles.push(new Particle(this.x, this.y, '#888')); } }
+                let st = this.history[frame];
+
+                // Delta Movement Logic (Relative Replay)
+                if (frame > 0) {
+                    let prev = this.history[frame - 1];
+                    this.x += (st.x - prev.x);
+                    this.y += (st.y - prev.y);
+                } else {
+                    this.x = st.x; this.y = st.y;
+                }
+
+                // Interact with Moving Platforms (Allows Clones to ride elevators they didn't record riding)
+                this.resolveMapCollision([], [], movingPlats);
+
+                this.vx = st.vx || 0;
+            } else {
+                if (!this.isExpired) {
+                    this.isExpired = true;
+                    for (let i = 0; i < 8; i++) particles.push(new Particle(this.x, this.y, '#888'));
+                }
+            }
             return;
         }
 

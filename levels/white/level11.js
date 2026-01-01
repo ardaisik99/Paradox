@@ -17,10 +17,10 @@ window.LEVELS.push({
     ],
     buttons: [
         // Button 1 (Middle Floor) - Label "1"
-        { x: 700, y: 240, target: 99, isCeiling: false, id: 1 },
+        { x: 700, y: 250, target: 99, isCeiling: false, id: 1 },
 
         // Button 2 (Bottom Floor) - Label "2"
-        { x: 700, y: 390, target: 99, isCeiling: false, id: 2 }
+        { x: 700, y: 400, target: 99, isCeiling: false, id: 2 }
     ],
     // Exit Door removed -> Goal itself is the "door" that appears.
     doors: [],
