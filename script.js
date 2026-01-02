@@ -489,14 +489,20 @@ class Portal extends GameObject {
     draw(ctx) {
         ctx.save();
         ctx.shadowBlur = 25 + Math.sin(this.pulse) * 10; ctx.shadowColor = COLORS.portal;
-        ctx.fillStyle = '#000'; ctx.fillRect(this.x, this.y, this.width, this.height);
-        if (COLORS.useBorders) {
-            ctx.strokeStyle = COLORS.portal; ctx.lineWidth = 3; ctx.strokeRect(this.x, this.y, this.width, this.height);
-        }
-        ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, (this.width / 3) * Math.abs(Math.sin(this.pulse * 0.5)), 0, Math.PI * 2);
-        ctx.strokeStyle = COLORS.portal; ctx.lineWidth = 2; // Keep inner circle stroke for effect? Or remove? User said "remove borders". 
-        // Let's keep the inner arc as it is an effect, but remove the rect border.
-        ctx.stroke(); ctx.restore();
+
+        // Circular Portal
+        ctx.beginPath();
+        ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(this.x + this.width / 2, this.y + this.height / 2, (this.width / 2) * Math.abs(Math.sin(this.pulse * 0.5)), 0, Math.PI * 2);
+        ctx.strokeStyle = COLORS.portal;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.restore();
     }
 }
 
@@ -771,8 +777,9 @@ class Player {
                     playSound('portal');
                     this.x = target.x + (target.width - this.width) / 2;
                     this.y = target.y + target.height + 2;
-                    this.vy = 1;
-                    this.vx = 0;
+                    // Momentum is preserved implicitly by NOT resetting vx/vy
+                    // this.vy = 1; // Removed reset
+                    // this.vx = 0; // Removed reset
                     this.portalLock = 20;
                 }
             }
