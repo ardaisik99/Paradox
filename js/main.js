@@ -226,8 +226,8 @@ function bindTouchEvents() {
     bindBtn('btnLeft', 'ArrowLeft');
     bindBtn('btnRight', 'ArrowRight');
     bindBtn('btnJump', 'ArrowUp');
-    bindBtn('btnClone', 'r');
-    bindBtn('btnRewindMobile', 'r');
+    bindBtn('btnCloneAction', 'r'); // Rotate Icon -> Create Clone (Rewind)
+    bindBtn('btnCollision', 'c');   // C -> Toggle Collision
 
     const menuBtn = document.getElementById('btnMenuMobile');
     if (menuBtn) {
