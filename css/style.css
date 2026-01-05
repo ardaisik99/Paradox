@@ -1,32 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
 * {
     box-sizing: border-box;
 }
 
+html,
 body {
     margin: 0;
     padding: 0;
-    background-color: #000;
+    width: 100%;
+    height: 100%;
+    background-color: #050505;
     color: #fff;
+    font-family: 'Inter', sans-serif;
     overflow: hidden;
-    font-family: 'Courier Prime', monospace;
-    height: 100vh;
-    width: 100vw;
+    /* Prevent Scroll */
+    touch-action: none;
+    /* Prevent Zoom/Pan */
     user-select: none;
+    -webkit-user-select: none;
 }
 
 #gameContainer {
     position: relative;
-    width: 100vw;
-    height: 100vh;
-    background: linear-gradient(to bottom, #252525 0%, #050505 100%);
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
 }
 
 canvas {
     display: block;
-    width: 100%;
     height: 100%;
     filter: contrast(1.1) brightness(1.1);
 }

@@ -76,47 +76,34 @@ const shadowCtx = shadowCanvas.getContext('2d');
 
 
 // --- HD & RESPONSIVE EKRAN AYARI ---
+// --- HD & RESPONSIVE EKRAN AYARI ---
 function resizeCanvas() {
-    // 1. Ekranın içine sığacak en büyük 16:9 oranını hesapla
-    const targetRatio = 800 / 450;
+    const dpr = window.devicePixelRatio || 1;
+    let w = window.innerWidth;
+    let h = window.innerHeight;
 
-    // Pencerenin %95'ini kullansın (Kenarlardan hafif boşluk kalsın)
-    const maxWidth = window.innerWidth * 0.95;
-    const maxHeight = window.innerHeight * 0.95;
-
-    let finalWidth = maxWidth;
-    let finalHeight = maxWidth / targetRatio;
-
-    // Eğer yükseklik ekrana sığmıyorsa, yüksekliğe göre ayarla
-    if (finalHeight > maxHeight) {
-        finalHeight = maxHeight;
-        finalWidth = finalHeight * targetRatio;
+    // Enforce 16:9 Aspect Ratio
+    if (w / h > 16 / 9) {
+        w = h * (16 / 9);
+    } else {
+        h = w * (9 / 16);
     }
 
-    // 2. CSS Boyutunu Ayarla (Görünen boyut)
-    canvas.style.width = `${finalWidth}px`;
-    canvas.style.height = `${finalHeight}px`;
+    // Visual Size
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
 
-    // Canvas'ı ortala
-    canvas.style.display = 'block';
-    canvas.style.margin = '0 auto';
-
-    // 3. İç Çözünürlüğü Ayarla (HD Kalite için DPI çarpımı)
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = finalWidth * dpr;
-    canvas.height = finalHeight * dpr;
+    // Internal Resolution
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
     shadowCanvas.width = canvas.width;
     shadowCanvas.height = canvas.height;
 
+    // Logic Scale (Game is 800x450)
+    const scale = (w * dpr) / 800;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
-    // 4. Çizim Ölçeğini Ayarla (Oyun mantığı 800x450 sanmaya devam etsin)
-    // Bu sayede oyunun fiziği bozulmadan HD görüntü alırız.
-    const scaleFactor = (finalWidth * dpr) / 800;
-    ctx.scale(scaleFactor, scaleFactor);
-
-    // Yumuşatma ayarları
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingEnabled = true; // High quality
 }
 
 const mainMenu = document.getElementById('mainMenu');
