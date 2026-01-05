@@ -1,4 +1,5 @@
 window.LEVELS.push({
+    maxClones: 2,
     theme: 'white',
     start: { x: 50, y: 350 }, // Bottom Left
     goal: { x: 750, y: 60, triggerId: 99 }, // Top Right

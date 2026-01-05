@@ -69,7 +69,8 @@ p {
     left: 0;
     width: 100%;
     height: 100%;
-    background: #000;
+    background: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
+    backdrop-filter: none;
     z-index: 50;
     display: none;
     flex-direction: column;
@@ -370,4 +371,162 @@ input:checked+.slider:before {
 
 .card-white:hover .concept-progress {
     color: #000;
+}
+
+/* PARTICLES DECORATION */
+.particles-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+    /* Behind Buttons (z-index 60) */
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15);
+    /* White Body, Ghostly */
+    animation: floatUp 15s infinite linear;
+}
+
+/* Character Eyes */
+.particle::before,
+.particle::after {
+    content: '';
+    position: absolute;
+    top: 20%;
+    width: 20%;
+    /* Eye Size */
+    height: 15%;
+    background: rgba(0, 0, 0, 0.6);
+    /* Black Eyes */
+}
+
+.particle::before {
+    left: 20%;
+}
+
+.particle::after {
+    right: 20%;
+}
+
+/* Character Sizes (Portrait Aspect Ratio ~20:35) */
+.particle:nth-child(1) {
+    bottom: -60px;
+    left: 10%;
+    width: 40px;
+    height: 70px;
+    animation-duration: 12s;
+    animation-delay: 0s;
+}
+
+.particle:nth-child(2) {
+    bottom: -60px;
+    left: 30%;
+    width: 20px;
+    height: 35px;
+    animation-duration: 18s;
+    animation-delay: 2s;
+}
+
+.particle:nth-child(3) {
+    bottom: -60px;
+    left: 70%;
+    width: 30px;
+    height: 52px;
+    animation-duration: 20s;
+    animation-delay: 4s;
+}
+
+.particle:nth-child(4) {
+    bottom: -60px;
+    left: 50%;
+    width: 24px;
+    height: 42px;
+    animation-duration: 15s;
+    animation-delay: 1s;
+}
+
+.particle:nth-child(5) {
+    bottom: -60px;
+    left: 85%;
+    width: 36px;
+    height: 63px;
+    animation-duration: 25s;
+    animation-delay: 6s;
+}
+
+.particle:nth-child(6) {
+    bottom: -60px;
+    left: 20%;
+    width: 16px;
+    height: 28px;
+    animation-duration: 22s;
+    animation-delay: 3s;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.8;
+    }
+
+    80% {
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateY(-110vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* MENU TITLE SUBTLE GLITCH */
+.menu-title::before {
+    content: attr(data-text);
+    position: absolute;
+    left: 2px;
+    text-shadow: 2px 0 rgba(255, 0, 0, 0.3);
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: -1;
+    animation: glitch-skew 4s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-skew {
+    0% {
+        transform: translate(0);
+    }
+
+    20% {
+        transform: translate(-2px, 2px);
+    }
+
+    40% {
+        transform: translate(-2px, -2px);
+    }
+
+    60% {
+        transform: translate(2px, 2px);
+    }
+
+    80% {
+        transform: translate(2px, -2px);
+    }
+
+    100% {
+        transform: translate(0);
+    }
 }

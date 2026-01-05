@@ -1,7 +1,8 @@
 window.LEVELS = window.LEVELS || [];
 window.LEVELS.push({
+    maxClones: 4,
     start: { x: 50, y: 350 },     // Start Left
-    goal: { x: 700, y: 350 },     // Goal (Reachable, after door, x=700 ensures collision before wall at 750)
+    goal: { x: 710, y: 340 },     // Goal (Reachable, after door, x=700 ensures collision before wall at 750)
 
     platforms: [
         // --- ROOM ---

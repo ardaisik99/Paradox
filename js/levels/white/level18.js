@@ -1,4 +1,5 @@
 window.LEVELS.push({
+    maxClones: 0,
     theme: 'white',
     start: { x: 100, y: 390 },
     goal: { x: 730, y: 90, triggerId: null }, // Goal HIGH up on the ledge

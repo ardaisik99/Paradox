@@ -1,4 +1,5 @@
 window.LEVELS.push({
+    maxClones: 2,
     theme: 'white',
     start: { x: 100, y: 350 }, // Start near elevator
     goal: { x: 700, y: 40, triggerId: 99, sequence: [1, 2] },  // Top Right (Exit) - Trigger: 99, Seq: 1->2

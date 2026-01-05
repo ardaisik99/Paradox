@@ -1,18 +1,19 @@
 window.LEVELS.push({
+    maxClones: 1,
     theme: 'white',
     start: { x: 700, y: 50 },
-    goal: { x: 750, y: 400, triggerId: null },
+    goal: { x: 740, y: 370, triggerId: null },
     platforms: [
         // Top Floor
-        { x: 140, y: 100, w: 660, h: 20 },
+        { x: 140, y: 100, w: 640, h: 20 },
 
         // Middle Floor
-        { x: 140, y: 280, w: 660, h: 20 },
+        { x: 140, y: 280, w: 640, h: 20 },
 
         // Bottom Floor (Visible White Floor)
         // Raised to y=430 to be visible on 450h canvas.
         { x: 20, y: 430, w: 120, h: 20 },
-        { x: 140, y: 430, w: 660, h: 20 },
+        { x: 140, y: 430, w: 640, h: 20 },
 
         // Walls
         { x: 0, y: 0, w: 20, h: 500 },

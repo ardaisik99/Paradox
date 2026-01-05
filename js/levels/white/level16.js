@@ -1,7 +1,8 @@
 window.LEVELS.push({
+    maxClones: 3,
     theme: 'white',
     start: { x: 50, y: 350 },
-    goal: { x: 740, y: 350, triggerId: null },
+    goal: { x: 740, y: 340, triggerId: null },
     platforms: [
         // Left Side
         { x: 0, y: 400, w: 200, h: 50 },

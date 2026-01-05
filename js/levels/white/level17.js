@@ -1,10 +1,11 @@
 window.LEVELS.push({
+    maxClones: 1,
     theme: 'white',
     start: { x: 100, y: 380 }, // Spawn on Bottom Floor
-    goal: { x: 50, y: 30, triggerId: null }, // Goal Top Left
+    goal: { x: 10, y: 20, triggerId: null }, // Goal Top Left
     platforms: [
         // 1. Top Line 
-        { x: 0, y: 80, w: 700, h: 20 },
+        { x: 10, y: 80, w: 690, h: 20 },
 
         // 2. Middle Left Line
         // Lowered to 300 to be jumpable from floor (420)
@@ -19,8 +20,8 @@ window.LEVELS.push({
         { x: 0, y: 420, w: 800, h: 100 },
 
         // Walls
-        { x: 0, y: 0, w: 10, h: 500 },
-        { x: 790, y: 0, w: 10, h: 500 }
+        { x: 0, y: 0, w: 10, h: 420 },
+        { x: 790, y: 0, w: 10, h: 420 }
     ],
     buttons: [
         { x: 450, y: 410, target: 'elevator', isCeiling: false, id: 'btn_elev' }

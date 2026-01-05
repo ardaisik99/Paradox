@@ -4,12 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { document.getElementById('loadingScreen').style.display = 'none'; }, 1000);
     if (!window.LEVELS || window.LEVELS.length === 0) console.error("Levels not loaded!");
 
-    // YENİ: Başlarken ve ekran boyutu değişince canvas'ı ayarla
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
     gameState = 'MENU';
     initVisuals();
+    updateTexts();
     loop();
 });
 
@@ -57,7 +57,10 @@ function setTheme(name) {
         COLORS.dust = '#ffffff';
         COLORS.door = '#222222';
         COLORS.button = '#aaaaaa';
-        COLORS.movingPlat = '#333333';
+        COLORS.dust = '#ffffff';
+        COLORS.door = '#222222';
+        COLORS.button = '#aaaaaa';
+        COLORS.movingPlat = '#666666'; // FIX: Visible against #333 BG
         COLORS.leverBase = '#222222';
         COLORS.portal = '#ffffff'; // White portal for Noir theme
         COLORS.leverKnobInactive = '#888888';
@@ -136,7 +139,7 @@ const TERMINAL_VELOCITY = 6;
 
 let gameState = 'MENU';
 let currentLevelIndex = 0;
-let unlockedLevels = 99;
+let unlockedLevels = parseInt(localStorage.getItem('paradoks_unlocked')) || 1;
 let frameCount = 0;
 let gameOver = false;
 let keys = {};
@@ -153,6 +156,117 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 // --- NAMESPACE & CONCEPTS ---
 let levelSequence = 0; // Global sequence counter for puzzle levels
 
+const LANGS = {
+    en: {
+        play: "PLAY", levels: "LEVELS", settings: "SETTINGS",
+        resume: "RESUME", restart: "RESTART", mainMenu: "MAIN MENU",
+        paused: "PAUSED",
+        sound: "SOUND", close: "CLOSE",
+        selectOne: "SELECT CONCEPT", back: "BACK",
+        level: "LEVEL", clones: "CLONES",
+        collisionOn: "COLLISION: ON [C]", collisionOff: "COLLISION: OFF [C]",
+        rewind: "[R] REWIND", menu: "[ESC] MENU",
+        gameOver: "GAME OVER", completed: "COMPLETED",
+        msgOver: "All Paradoxes Solved!", msgWin: "Timeline restored.",
+        nextLevel: "Next Paradox...",
+        limit: "CLONE LIMIT REACHED!",
+        concepts: {
+            noir: { name: "NOIR", desc: "The Beginning" },
+            white: { name: "BLANC", desc: "Inversion" }
+        }
+    },
+    ru: {
+        play: "ИГРАТЬ", levels: "УРОВНИ", settings: "НАСТРОЙКИ",
+        resume: "ПРОДОЛЖИТЬ", restart: "РЕСТАРТ", mainMenu: "ГЛАВНОЕ МЕНЮ",
+        paused: "ПАУЗА",
+        sound: "ЗВУК", close: "ЗАКРЫТЬ",
+        selectOne: "ВЫБЕРИТЕ КОНЦЕПТ", back: "НАЗАД",
+        level: "УРОВЕНЬ", clones: "КЛОНЫ",
+        collisionOn: "КОЛЛИЗИЯ: ВКЛ [C]", collisionOff: "КОЛЛИЗИЯ: ВЫКЛ [C]",
+        rewind: "[R] ПЕРЕМОТКА", menu: "[ESC] МЕНЮ",
+        gameOver: "ИГРА ОКОНЧЕНА", completed: "ЗАВЕРШЕНО",
+        msgOver: "Все парадоксы решены!", msgWin: "Временная линия восстановлена.",
+        nextLevel: "Следующий парадокс...",
+        limit: "ПРЕДЕЛ КЛОНОВ!",
+        concepts: {
+            noir: { name: "НУАР", desc: "Начало" },
+            white: { name: "БЛАНК", desc: "Инверсия" }
+        }
+    },
+    tr: {
+        play: "OYNA", levels: "BÖLÜMLER", settings: "AYARLAR",
+        resume: "DEVAM ET", restart: "YENİDEN BAŞLA", mainMenu: "ANA MENÜ",
+        paused: "DURAKLATILDI",
+        sound: "SES", close: "KAPAT",
+        selectOne: "KONSEPT SEÇ", back: "GERİ",
+        level: "BÖLÜM", clones: "KLONLAR",
+        collisionOn: "ÇARPIŞMA: AÇIK [C]", collisionOff: "ÇARPIŞMA: KAPALI [C]",
+        rewind: "[R] GERİ SAR", menu: "[ESC] MENÜ",
+        gameOver: "OYUN BİTTİ", completed: "TAMAMLANDI",
+        msgOver: "Tüm Paradokslar Çözüldü!", msgWin: "Zaman çizgisi onarıldı.",
+        nextLevel: "Sıradaki Paradoks...",
+        limit: "KLON LİMİTİ DOLDU!",
+        concepts: {
+            noir: { name: "NOIR", desc: "Başlangıç" },
+            white: { name: "BEYAZ", desc: "Tersine" }
+        }
+    }
+};
+
+let currentLang = 'en';
+
+function toggleLanguage() {
+    if (currentLang === 'en') currentLang = 'ru';
+    else if (currentLang === 'ru') currentLang = 'tr';
+    else currentLang = 'en';
+    updateTexts();
+}
+
+function updateTexts() {
+    const t = LANGS[currentLang];
+
+    // Main Menu
+    document.getElementById('btnPlayMain').innerText = t.play;
+    document.getElementById('btnLevelsMain').innerText = t.levels;
+    document.getElementById('btnSettingsMain').innerText = t.settings;
+
+    // Ingame Menu
+    document.querySelector('#ingameMenu .menu-title').innerText = t.paused;
+    document.getElementById('btnResume').innerText = t.resume;
+    document.getElementById('btnRestart').innerText = t.restart;
+    document.getElementById('btnSettingsPause').innerText = t.settings;
+    document.getElementById('btnExit').innerText = t.mainMenu;
+
+    // Levels Menu
+    document.querySelector('#conceptSelectView h2').innerText = t.selectOne;
+    document.getElementById('btnBackToMain').innerText = t.mainMenu;
+    document.getElementById('btnBackToConcepts').innerText = t.back;
+    document.getElementById('selectedConceptTitle').innerText = t.concepts['noir'].name; // Gets overwritten by selection anyway
+
+    // Settings
+    document.querySelector('#settingsMenu .menu-title').innerText = t.settings;
+    document.querySelector('#settingsMenu .setting-row span').innerText = t.sound;
+    document.getElementById('btnCloseSettings').innerText = t.close;
+
+    // Win Screen
+    document.getElementById('winTitle').innerText = t.completed;
+    document.getElementById('winMessage').innerText = t.msgWin;
+    // Win Buttons if any
+
+    // Game UI
+    // Note: Some UI is updated in loop/loadLevel. We update static parts here or flags.
+    // Static help text:
+    const helpDiv = document.querySelector('#gameUI div');
+    if (helpDiv) {
+        helpDiv.children[0].innerText = t.rewind;
+        helpDiv.children[1].innerText = t.menu;
+    }
+
+    document.getElementById('collisionText').innerText = cloneCollisionEnabled ? t.collisionOn : t.collisionOff;
+
+    renderConcepts(); // Re-render concepts with new language
+}
+
 const CONCEPTS = [
     { id: 'noir', name: 'NOIR', desc: 'The Beginning', start: 0, count: 10, cssClass: 'card-black' },
     { id: 'white', name: 'BLANC', desc: 'Inversion', start: 10, count: 10, cssClass: 'card-white' }
@@ -162,6 +276,7 @@ function bindEvents() {
     document.getElementById('btnPlayMain').addEventListener('click', startGame);
     document.getElementById('btnLevelsMain').addEventListener('click', openLevels); // Calls new openLevels
     document.getElementById('btnSettingsMain').addEventListener('click', openSettings);
+    document.getElementById('btnLanguage').addEventListener('click', () => { playSound('click'); toggleLanguage(); });
     document.getElementById('btnResume').addEventListener('click', resumeGame);
     document.getElementById('btnRestart').addEventListener('click', restartLevel);
     document.getElementById('btnSettingsPause').addEventListener('click', openSettings);
@@ -225,11 +340,11 @@ function renderConcepts() {
 
         const title = document.createElement('div');
         title.className = 'concept-title';
-        title.innerText = c.name;
+        title.innerText = LANGS[currentLang].concepts[c.id].name;
 
         const desc = document.createElement('div');
         desc.className = 'concept-desc';
-        desc.innerText = c.desc;
+        desc.innerText = LANGS[currentLang].concepts[c.id].desc;
 
         info.appendChild(title);
         info.appendChild(desc);
@@ -307,7 +422,22 @@ function playSound(type) {
 }
 function toggleIngameMenu() { playSound('click'); if (gameState === 'PLAYING') { gameState = 'PAUSED'; ingameMenu.classList.add('active'); } else if (gameState === 'PAUSED') resumeGame(); }
 function resumeGame() { playSound('click'); gameState = 'PLAYING'; ingameMenu.classList.remove('active'); }
-function goToMainMenu() { playSound('click'); gameState = 'MENU'; mainMenu.classList.add('active'); ingameMenu.classList.remove('active'); levelsMenu.classList.remove('active'); settingsMenu.classList.remove('active'); winScreen.classList.remove('active'); gameUI.classList.remove('visible'); }
+function goToMainMenu() {
+    playSound('click');
+    gameState = 'MENU';
+    setTheme('noir');
+    // WIPE LEVEL DATA
+    platforms = []; doors = []; buttons = []; clones = []; movingPlatforms = []; levers = []; portals = []; texts = []; lasers = [];
+    player = null; goal = null;
+
+    mainMenu.classList.add('active');
+    ingameMenu.classList.remove('active');
+    levelsMenu.classList.remove('active');
+    settingsMenu.classList.remove('active');
+    winScreen.classList.remove('active');
+    gameUI.classList.remove('visible');
+    initVisuals(); // Reset rays and dust
+}
 function restartLevel() { playSound('click'); resetLevel(true); resumeGame(); }
 function startGame() { playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); }
 
@@ -315,7 +445,7 @@ function openSettings() { playSound('click'); document.getElementById('soundTogg
 function closeSettings() { playSound('click'); settingsMenu.classList.remove('active'); if (gameState === 'MENU') mainMenu.classList.add('active'); else if (gameState === 'PAUSED') ingameMenu.classList.add('active'); }
 function selectLevel(index) { if (index >= unlockedLevels) return; playSound('click'); currentLevelIndex = index; levelsMenu.classList.remove('active'); startGame(); }
 function toggleSound(enabled) { soundEnabled = enabled; playSound('click'); }
-function toggleCollision() { playSound('click'); cloneCollisionEnabled = !cloneCollisionEnabled; collisionTextUI.innerText = `COLLISION: ${cloneCollisionEnabled ? 'ON' : 'OFF'} [C]`; collisionTextUI.style.color = cloneCollisionEnabled ? '#fff' : '#888'; }
+function toggleCollision() { playSound('click'); cloneCollisionEnabled = !cloneCollisionEnabled; collisionTextUI.innerText = cloneCollisionEnabled ? LANGS[currentLang].collisionOn : LANGS[currentLang].collisionOff; collisionTextUI.style.color = cloneCollisionEnabled ? '#fff' : '#888'; }
 
 // --- EFEKTLER ---
 function initVisuals() {
@@ -340,8 +470,12 @@ class LightRay {
     }
 }
 function drawBackgroundEffects() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to clear FULL screen
     ctx.fillStyle = COLORS.bg || '#111';
-    ctx.fillRect(0, 0, 800, 450);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
     lightRays.forEach(r => { r.update(); r.draw(ctx); });
     atmosphericDust.forEach(d => { d.update(); d.draw(ctx); });
 }
@@ -427,11 +561,11 @@ function drawDarkness() {
 function loadLevel(index) {
     const allLevels = window.LEVELS || [];
     if (index >= allLevels.length) {
-        document.getElementById('winTitle').innerText = "GAME OVER"; document.getElementById('winMessage').innerText = "All Paradoxes Solved!";
+        document.getElementById('winTitle').innerText = LANGS[currentLang].gameOver; document.getElementById('winMessage').innerText = LANGS[currentLang].msgOver;
         winButtons.style.display = 'block'; winScreen.classList.add('active'); return;
     }
     const ld = allLevels[index];
-    setTheme(ld.theme || 'noir'); // Set theme based on level data
+    setTheme(ld.theme || 'noir');
     platforms = []; doors = []; buttons = []; clones = []; particles = []; movingPlatforms = []; levers = []; portals = []; texts = []; lasers = [];
     frameCount = 0; gameOver = false; levelSequence = 0; darknessLevel = !!ld.darkness; invertedMap = !!ld.inverted;
 
@@ -444,23 +578,32 @@ function loadLevel(index) {
     if (ld.lasers) ld.lasers.forEach(l => lasers.push(new Laser(l.x, l.y, l.w, l.h, l.direction, l.type)));
     if (ld.texts) ld.texts.forEach(t => texts.push(new TextObject(t.x, t.y, t.text, t.size, t.color)));
 
-    if (ld.texts) ld.texts.forEach(t => texts.push(new TextObject(t.x, t.y, t.text, t.size, t.color)));
-
     goal = ld.goal ? new Goal(ld.goal.x, ld.goal.y, ld.goal.triggerId, ld.goal.sequence) : null;
     player = new Player(ld.start.x, ld.start.y);
 
-    levelTextUI.innerText = `LEVEL ${index + 1}`; cloneTextUI.innerText = `CLONES: ${clones.length}`;
-    levelIndicator.innerText = `LEVEL ${index + 1}`; levelIndicator.style.opacity = 1; setTimeout(() => { levelIndicator.style.opacity = 0; }, 2000);
+    let maxDisplay = ld.maxClones !== undefined ? ld.maxClones : "∞";
+    levelTextUI.innerText = `${LANGS[currentLang].level} ${index + 1}`;
+    cloneTextUI.innerText = `${LANGS[currentLang].clones}: ${clones.length} / ${maxDisplay}`;
+    levelIndicator.innerText = `${LANGS[currentLang].level} ${index + 1}`; levelIndicator.style.color = '#fff'; levelIndicator.style.opacity = 1; setTimeout(() => { levelIndicator.style.opacity = 0; }, 2000);
     for (let i = 0; i < 10; i++) particles.push(new Particle(ld.start.x, ld.start.y, '#fff'));
 }
 
 function createCloneAndReset() {
-    if (gameState !== 'PLAYING') return; // Removed gameOver check to allow Rewind after death
+    if (gameState !== 'PLAYING') return;
     const ld = window.LEVELS[currentLevelIndex];
+    if (ld.maxClones !== undefined && clones.length >= ld.maxClones) {
+        levelIndicator.innerText = LANGS[currentLang].limit;
+        levelIndicator.style.color = '#ff4444';
+        levelIndicator.style.opacity = 1;
+        setTimeout(() => { levelIndicator.style.opacity = 0; }, 1000);
+        return;
+    }
+
     if (player.history.length > 0) {
         playSound('rewind');
         clones.push(new Player(ld.start.x, ld.start.y, true, [...player.history]));
-        cloneTextUI.innerText = `CLONES: ${clones.length}`;
+        let maxDisplay = ld.maxClones !== undefined ? ld.maxClones : "∞";
+        cloneTextUI.innerText = `CLONES: ${clones.length} / ${maxDisplay}`;
     }
     player = new Player(ld.start.x, ld.start.y);
     frameCount = 0; clones.forEach(c => c.isExpired = false);
@@ -1178,6 +1321,12 @@ class Player {
 
             // Real Player: Record the fall
             if (!this.isClone) {
+                // LEVEL 20 HARDCORE MODE: If you die (laser etc), Game Restarts!
+                if (currentLevelIndex === 19) {
+                    resetLevel(true); // Restart the LEVEL completely (wipes clones)
+                    return;
+                }
+
                 this.history.push({ x: this.x, y: this.y, isDead: true });
                 // Reset INSTANTLY
                 createCloneAndReset();
@@ -1275,7 +1424,9 @@ class Player {
                         this.vx = 0;
                     } else {
                         // Y collision
-                        if (dy > 0) this.y = c.y + c.height;
+                        if (dy > 0) {
+                            if (!this.isGrounded) this.y = c.y + c.height;
+                        }
                         else { this.y = c.y - this.height; this.vy = 0; this.isGrounded = true; }
                     }
                 }
@@ -1290,9 +1441,16 @@ class Player {
 
         if (goal && goal.isActive && checkRectCollision(this, goal)) {
             gameOver = true; playSound('win');
-            if (currentLevelIndex + 1 >= unlockedLevels) unlockedLevels = currentLevelIndex + 2;
+            if (currentLevelIndex + 1 >= unlockedLevels) {
+                unlockedLevels = currentLevelIndex + 2;
+                localStorage.setItem('paradoks_unlocked', unlockedLevels);
+            }
             const allLevels = window.LEVELS || [];
-            if (currentLevelIndex + 1 >= allLevels.length) { document.getElementById('winTitle').innerText = "GAME OVER"; document.getElementById('winMessage').innerText = "All Paradoxes Solved!"; winButtons.style.display = 'block'; }
+            if (currentLevelIndex + 1 >= allLevels.length) {
+                // Show White Theme Finish Screen
+                WhiteEnding.start();
+                return;
+            }
             else {
                 if (currentLevelIndex === 9) {
                     ComicEnding.start(() => {
@@ -1301,8 +1459,8 @@ class Player {
                     });
                     return;
                 }
-                document.getElementById('winTitle').innerText = "LEVEL COMPLETED";
-                document.getElementById('winMessage').innerText = "Next Paradox...";
+                document.getElementById('winTitle').innerText = LANGS[currentLang].completed;
+                document.getElementById('winMessage').innerText = LANGS[currentLang].nextLevel;
                 winButtons.style.display = 'none';
                 setTimeout(() => { winScreen.classList.remove('active'); currentLevelIndex++; loadLevel(currentLevelIndex); }, 2000);
             }

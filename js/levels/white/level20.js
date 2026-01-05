@@ -1,9 +1,10 @@
 window.LEVELS.push({
+    maxClones: 1,
     theme: 'white',
     inverted: true,
     darkness: true, // Enable Darkness Mode
     start: { x: 50, y: 50 },
-    goal: { x: 280, y: 390, triggerId: 'finishGate' },
+    goal: { x: 280, y: 370, triggerId: 'finishGate' },
     platforms: [
         // --- TOP FLOOR ---
         { x: 0, y: 100, w: 700, h: 20 },

@@ -1,4 +1,5 @@
 window.LEVELS.push({
+    maxClones: 1,
     theme: 'white',
     darkness: true, // Enable Darkness Mode
     start: { x: 40, y: 80 },

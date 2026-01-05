@@ -1,14 +1,15 @@
 window.LEVELS.push({
+    maxClones: 3,
     theme: 'white',
     start: { x: 400, y: 40 },
-    goal: { x: 400, y: 400, triggerId: null },
+    goal: { x: 400, y: 370, triggerId: null },
     platforms: [
         // Top Floor (Spawn)
         { x: 300, y: 80, w: 200, h: 20 },
 
         // Tower Walls
-        { x: 230, y: 0, w: 20, h: 450 },
-        { x: 550, y: 0, w: 20, h: 450 },
+        { x: 230, y: 0, w: 20, h: 430 },
+        { x: 550, y: 0, w: 20, h: 430 },
 
         // Level 1 Platform (Left) - Target for blocking Laser 1
         { x: 250, y: 180, w: 170, h: 20 },
