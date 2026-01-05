@@ -91,8 +91,13 @@ const shadowCtx = shadowCanvas.getContext('2d');
 // --- HD & RESPONSIVE EKRAN AYARI ---
 function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
-    let w = window.innerWidth;
-    let h = window.innerHeight;
+
+    // Mobile Safe Zone: Shrink canvas to prevent thumb occlusion
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const marginFactor = isMobile ? 0.85 : 1.0;
+
+    let w = window.innerWidth * marginFactor;
+    let h = window.innerHeight * marginFactor;
 
     // Enforce 16:9 Aspect Ratio
     if (w / h > 16 / 9) {
