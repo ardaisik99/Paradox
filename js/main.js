@@ -93,25 +93,36 @@ const shadowCtx = shadowCanvas.getContext('2d');
 // --- HD & RESPONSIVE EKRAN AYARI ---
 // --- HD & RESPONSIVE EKRAN AYARI ---
 function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
+    // Optimization: Cap DPR to 1.5 on mobile to prevent lag (4K canvas is too heavy)
+    const rawDpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(rawDpr, 1.5);
+
 
     // Mobile Safe Zone: Shrink canvas ONLY during gameplay to prevent thumb occlusion
     const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    // Use safe zone if mobile AND playing (not menu)
-    const useSafeZone = isMobile && (typeof gameState !== 'undefined' && (gameState === 'PLAYING' || gameState === 'PAUSED'));
-    const marginFactor = useSafeZone ? 0.75 : 1.0;
+    // Use safe zone if mobile AND playing (disable for menu AND pause menu)
+    const useSafeZone = isMobile && (typeof gameState !== 'undefined' && gameState === 'PLAYING');
 
-    let w = window.innerWidth * marginFactor;
-    let h = window.innerHeight * marginFactor;
+    // Calculate Available Dimensions
+    let availW = window.innerWidth;
+    let availH = window.innerHeight;
 
-    // Shift game UP (only during play) to free up bottom space for buttons
     if (useSafeZone) {
-        canvas.style.marginTop = '-60px';
+        availH = window.innerHeight * 0.75; // Reserve 25% at bottom for buttons
+        // Keep availW at 100% to fill sides if possible
+    }
+
+    let w = availW;
+    let h = availH;
+
+    // Reset position logic
+    if (useSafeZone) {
+        canvas.style.marginTop = '-50px'; // Visual Shift Up
     } else {
         canvas.style.marginTop = '0';
     }
 
-    // Enforce 16:9 Aspect Ratio
+    // Enforce 16:9 Aspect Ratio within Available Space
     if (w / h > 16 / 9) {
         w = h * (16 / 9);
     } else {
@@ -555,8 +566,8 @@ function playSound(type) {
         else if (type === 'rewind') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.4); gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
     } catch (e) { }
 }
-function toggleIngameMenu() { playSound('click'); if (gameState === 'PLAYING') { gameState = 'PAUSED'; ingameMenu.classList.add('active'); } else if (gameState === 'PAUSED') resumeGame(); }
-function resumeGame() { playSound('click'); gameState = 'PLAYING'; ingameMenu.classList.remove('active'); }
+function toggleIngameMenu() { playSound('click'); if (gameState === 'PLAYING') { gameState = 'PAUSED'; ingameMenu.classList.add('active'); resizeCanvas(); } else if (gameState === 'PAUSED') resumeGame(); }
+function resumeGame() { playSound('click'); gameState = 'PLAYING'; ingameMenu.classList.remove('active'); resizeCanvas(); }
 function goToMainMenu() {
     playSound('click');
     gameState = 'MENU';
