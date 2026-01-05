@@ -530,3 +530,80 @@ input:checked+.slider:before {
         transform: translate(0);
     }
 }
+
+/* MOBILE CONTROLS */
+#mobileControls {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    /* Let touches pass through empty space */
+    z-index: 1000;
+}
+
+.mob-btn {
+    pointer-events: auto;
+    /* Enable touch on buttons */
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: 12px;
+    font-weight: bold;
+    backdrop-filter: blur(2px);
+    touch-action: manipulation;
+    user-select: none;
+    outline: none;
+}
+
+.mob-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0.95);
+}
+
+.chk-left {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    display: flex;
+    gap: 15px;
+}
+
+.chk-right {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+}
+
+.sub-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.mob-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+}
+
+.mob-btn.large {
+    width: 80px;
+    height: 80px;
+    font-size: 30px;
+    border-radius: 50%;
+}
+
+.mob-btn.top-right {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    z-index: 1001;
+}

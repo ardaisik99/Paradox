@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gameState = 'MENU';
     initVisuals();
+    initYandex(); // Yandex SDK
+    bindTouchEvents(); // Mobile Controls
     updateTexts();
     loop();
 });
@@ -155,6 +157,73 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // --- NAMESPACE & CONCEPTS ---
 let levelSequence = 0; // Global sequence counter for puzzle levels
+let ysdk = null; // Yandex SDK Instance
+
+function initYandex() {
+    if (typeof YaGames === 'undefined') return;
+    YaGames.init().then(ysdk_instance => {
+        ysdk = ysdk_instance;
+        // Language
+        let lang = ysdk.environment.i18n.lang;
+        if (LANGS[lang]) {
+            currentLang = lang;
+            updateTexts();
+        }
+
+        // Mobile Check
+        if (ysdk.deviceInfo.isMobile()) {
+            document.getElementById('mobileControls').style.display = 'block';
+        }
+
+        // Notify Ready
+        ysdk.features.LoadingAPI.ready();
+    }).catch(err => console.error('YSDK Init Error:', err));
+}
+
+function bindTouchEvents() {
+    const bindBtn = (id, k) => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.addEventListener('touchstart', (e) => { e.preventDefault(); keys[k] = true; });
+        b.addEventListener('touchend', (e) => { e.preventDefault(); keys[k] = false; });
+        b.addEventListener('mousedown', (e) => { keys[k] = true; });
+        b.addEventListener('mouseup', (e) => { keys[k] = false; });
+    };
+
+    bindBtn('btnLeft', 'ArrowLeft');
+    bindBtn('btnRight', 'ArrowRight');
+    bindBtn('btnJump', 'ArrowUp');
+    bindBtn('btnClone', 'r');
+    bindBtn('btnRewindMobile', 'r');
+
+    const menuBtn = document.getElementById('btnMenuMobile');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                ingameMenu.classList.add('active');
+            }
+            else if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                ingameMenu.classList.remove('active');
+            }
+        });
+    }
+}
+
+// Handle Visibility (Mute Audio)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (gameState === 'PLAYING') {
+            gameState = 'PAUSED';
+            ingameMenu.classList.add('active');
+        }
+        if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+    } else {
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+});
+
 
 const LANGS = {
     en: {

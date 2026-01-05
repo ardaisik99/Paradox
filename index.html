@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PARADOX</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Yandex Games SDK -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
 </head>
 
 <body>
@@ -16,6 +18,21 @@
         <canvas id="gameCanvas" width="800" height="450"></canvas>
         <div class="vignette"></div>
         <div class="scanlines"></div>
+
+        <div id="mobileControls" style="display: none;">
+            <div class="chk-left">
+                <button id="btnLeft" class="mob-btn">◀</button>
+                <button id="btnRight" class="mob-btn">▶</button>
+            </div>
+            <div class="chk-right">
+                <button id="btnJump" class="mob-btn large">▲</button>
+                <div class="sub-actions">
+                    <button id="btnClone" class="mob-btn">Clone</button>
+                    <button id="btnRewindMobile" class="mob-btn">↺</button>
+                </div>
+            </div>
+            <button id="btnMenuMobile" class="mob-btn top-right">☰</button>
+        </div>
 
         <div id="levelIndicator">LEVEL 1</div>
 
