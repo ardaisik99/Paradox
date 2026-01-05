@@ -607,3 +607,30 @@ input:checked+.slider:before {
     font-size: 20px;
     z-index: 1001;
 }
+
+/* ROTATION WARNING */
+#rotateWarning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    color: #fff;
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+@media screen and (orientation: portrait) and (max-width: 900px) {
+    #rotateWarning {
+        display: flex !important;
+    }
+
+    #gameContainer {
+        display: none !important;
+    }
+}
