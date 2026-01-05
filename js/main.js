@@ -16,14 +16,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loop();
 });
 
+// Flag for logic
+window.isMobileInput = false;
+
 function checkMobile() {
     // Show controls if generic touch device logic passes
     const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    if (isTouch || isMobileDevice) {
-        const ctrls = document.getElementById('mobileControls');
-        if (ctrls) ctrls.style.display = 'block';
+    // TEMPORARY: Force enabled for PC Testing (User Request: "PC de de")
+    if (true || isTouch || isMobileDevice) {
+        window.isMobileInput = true;
     }
 }
 
@@ -92,12 +95,21 @@ const shadowCtx = shadowCanvas.getContext('2d');
 function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
 
-    // Mobile Safe Zone: Shrink canvas to prevent thumb occlusion
+    // Mobile Safe Zone: Shrink canvas ONLY during gameplay to prevent thumb occlusion
     const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    const marginFactor = isMobile ? 0.85 : 1.0;
+    // Use safe zone if mobile AND playing (not menu)
+    const useSafeZone = isMobile && (typeof gameState !== 'undefined' && (gameState === 'PLAYING' || gameState === 'PAUSED'));
+    const marginFactor = useSafeZone ? 0.75 : 1.0;
 
     let w = window.innerWidth * marginFactor;
     let h = window.innerHeight * marginFactor;
+
+    // Shift game UP (only during play) to free up bottom space for buttons
+    if (useSafeZone) {
+        canvas.style.marginTop = '-60px';
+    } else {
+        canvas.style.marginTop = '0';
+    }
 
     // Enforce 16:9 Aspect Ratio
     if (w / h > 16 / 9) {
@@ -219,33 +231,49 @@ function initYandex() {
 }
 
 function bindTouchEvents() {
-    const bindBtn = (id, k) => {
+    const bindBtn = (id, k, callback) => {
         const b = document.getElementById(id);
         if (!b) return;
-        b.addEventListener('touchstart', (e) => { e.preventDefault(); keys[k] = true; });
-        b.addEventListener('touchend', (e) => { e.preventDefault(); keys[k] = false; });
-        b.addEventListener('mousedown', (e) => { keys[k] = true; });
-        b.addEventListener('mouseup', (e) => { keys[k] = false; });
+
+        const press = (e) => {
+            if (e.cancelable) e.preventDefault();
+            keys[k] = true;
+            b.classList.add('active');
+            if (callback) callback(); // Trigger action immediately
+        };
+        const release = (e) => {
+            if (e.cancelable) e.preventDefault();
+            keys[k] = false;
+            b.classList.remove('active');
+        };
+
+        // Passive false for touch to allow preventDefault
+        b.addEventListener('touchstart', press, { passive: false });
+        b.addEventListener('touchend', release);
+        b.addEventListener('mousedown', press);
+        b.addEventListener('mouseup', release);
+        b.addEventListener('mouseleave', release);
     };
 
     bindBtn('btnLeft', 'ArrowLeft');
     bindBtn('btnRight', 'ArrowRight');
     bindBtn('btnJump', 'ArrowUp');
-    bindBtn('btnCloneAction', 'r'); // Rotate Icon -> Create Clone (Rewind)
-    bindBtn('btnCollision', 'c');   // C -> Toggle Collision
+
+    // Pass the functions directly
+    bindBtn('btnCloneAction', 'r', () => { if (gameState === 'PLAYING') createCloneAndReset(); });
+    bindBtn('btnCollision', 'c', () => { if (gameState === 'PLAYING') toggleCollision(); });
 
     const menuBtn = document.getElementById('btnMenuMobile');
     if (menuBtn) {
-        menuBtn.addEventListener('click', () => {
-            if (gameState === 'PLAYING') {
-                gameState = 'PAUSED';
-                ingameMenu.classList.add('active');
-            }
-            else if (gameState === 'PAUSED') {
-                gameState = 'PLAYING';
-                ingameMenu.classList.remove('active');
-            }
+        menuBtn.addEventListener('click', (e) => {
+            if (e.cancelable) e.preventDefault();
+            toggleIngameMenu();
         });
+        // Also bind touch for menu
+        menuBtn.addEventListener('touchstart', (e) => {
+            if (e.cancelable) e.preventDefault();
+            toggleIngameMenu();
+        }, { passive: false });
     }
 }
 
@@ -544,9 +572,10 @@ function goToMainMenu() {
     winScreen.classList.remove('active');
     gameUI.classList.remove('visible');
     initVisuals(); // Reset rays and dust
+    resizeCanvas(); // Reset Scale (Full Screen for Menu)
 }
 function restartLevel() { playSound('click'); resetLevel(true); resumeGame(); }
-function startGame() { playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); }
+function startGame() { playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); resizeCanvas(); }
 
 function openSettings() { playSound('click'); document.getElementById('soundToggle').checked = soundEnabled; settingsMenu.classList.add('active'); if (gameState === 'MENU') mainMenu.classList.remove('active'); if (gameState === 'PAUSED') ingameMenu.classList.remove('active'); }
 function closeSettings() { playSound('click'); settingsMenu.classList.remove('active'); if (gameState === 'MENU') mainMenu.classList.add('active'); else if (gameState === 'PAUSED') ingameMenu.classList.add('active'); }
@@ -775,7 +804,18 @@ function draw() {
     drawDarkness(); // Darkness Overlay
     drawPostProcess(); // Vignette ve Scanlines
 }
-function loop() { update(); draw(); requestAnimationFrame(loop); }
+function loop() {
+    update();
+    draw();
+
+    // Manage Visibility
+    const ctrls = document.getElementById('mobileControls');
+    if (ctrls && window.isMobileInput) {
+        ctrls.style.display = (gameState === 'PLAYING') ? 'block' : 'none';
+    }
+
+    requestAnimationFrame(loop);
+}
 
 window.addEventListener('keydown', (e) => {
     if (gameState === 'PLAYING') {
