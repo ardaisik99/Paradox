@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
 * {
     box-sizing: border-box;
@@ -12,7 +12,7 @@ body {
     height: 100%;
     background-color: #050505;
     color: #fff;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Courier Prime', monospace;
     overflow: hidden;
     /* Prevent Scroll */
     touch-action: none;
@@ -52,12 +52,12 @@ canvas {
 }
 
 h1 {
-    font-size: 32px;
+    font-size: 20px;
     margin: 0;
     color: #fff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     font-weight: bold;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
 }
 
 p {
@@ -93,12 +93,12 @@ p {
 }
 
 .menu-title {
-    font-size: 90px;
+    font-size: 60px;
     font-weight: 700;
-    letter-spacing: 12px;
+    letter-spacing: 6px;
     color: #fff;
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-    margin-bottom: 50px;
+    text-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+    margin-bottom: 20px;
     /* ANİMASYON GERİ GELDİ */
     animation: pulseTitle 4s infinite ease-in-out;
 }
@@ -107,18 +107,19 @@ p {
     background: transparent;
     border: 1px solid #666;
     color: #ddd;
-    padding: 16px 0;
+    padding: 10px 0;
     font-family: 'Courier Prime', monospace;
-    font-size: 22px;
-    margin: 12px;
+    font-size: 14px;
+    margin: 9px;
     cursor: pointer;
-    width: 280px;
+    width: 180px;
     text-align: center;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     position: relative;
     z-index: 60;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .btn:hover {
@@ -236,17 +237,17 @@ input:checked+.slider:before {
 }
 
 #levelIndicator {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 80px;
+    /* Position is handled by JS resizeCanvas (centered 800x450 layer) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
     color: #fff;
     opacity: 0;
     pointer-events: none;
     z-index: 30;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-    letter-spacing: 10px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    letter-spacing: 4px;
     transition: opacity 1s;
     font-weight: bold;
 }
@@ -275,8 +276,8 @@ input:checked+.slider:before {
 
 /* ADDING CONCEPT CARD STYLES */
 .concept-card {
-    width: 600px;
-    height: 120px;
+    width: 450px;
+    height: 100px;
     background: linear-gradient(90deg, #111 0%, #222 100%);
     border: 1px solid #333;
     display: flex;
@@ -319,10 +320,10 @@ input:checked+.slider:before {
 }
 
 .concept-title {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: bold;
     color: #fff;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
     margin-bottom: 5px;
 }
 
@@ -639,4 +640,14 @@ input:checked+.slider:before {
     #gameContainer {
         display: none !important;
     }
+}
+
+#gameUI {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 20;
 }

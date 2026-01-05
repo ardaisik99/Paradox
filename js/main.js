@@ -10,10 +10,22 @@ document.addEventListener('DOMContentLoaded', () => {
     gameState = 'MENU';
     initVisuals();
     initYandex(); // Yandex SDK
+    checkMobile(); // Check for generic mobile device
     bindTouchEvents(); // Mobile Controls
     updateTexts();
     loop();
 });
+
+function checkMobile() {
+    // Show controls if generic touch device logic passes
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isTouch || isMobileDevice) {
+        const ctrls = document.getElementById('mobileControls');
+        if (ctrls) ctrls.style.display = 'block';
+    }
+}
 
 const THEMES = {
     noir: { solid: '#000000', player: '#ffffff', clone: '#888888', rimLight: '#ffffff', buttonActive: '#aaaaaa', text: '#fff', bg: '#333333', useBorders: true },
@@ -104,6 +116,40 @@ function resizeCanvas() {
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
     ctx.imageSmoothingEnabled = true; // High quality
+
+    // --- UI SCALING (Responsive Fix) ---
+    // Force UI to behave as if it's on 800x450 screen, then scale it up/down.
+    const uiScale = w / 800;
+    const uiElements = [
+        document.getElementById('gameUI'),
+        document.getElementById('mainMenu'),
+        document.getElementById('ingameMenu'),
+        document.getElementById('levelsMenu'),
+        document.getElementById('settingsMenu'),
+        document.getElementById('winScreen'),
+        document.getElementById('levelIndicator'),
+        document.getElementById('mobileControls'),
+        document.getElementById('loadingScreen') // Loading too
+    ];
+
+    uiElements.forEach(el => {
+        if (el) {
+            el.style.width = '800px';
+            el.style.height = '450px';
+            el.style.position = 'absolute';
+            el.style.left = '50%';
+            el.style.top = '50%';
+            el.style.transform = `translate(-50%, -50%) scale(${uiScale})`;
+            el.style.transformOrigin = 'center center';
+            el.style.margin = '0';
+            // Note: gameUI has pointer-events: none usually? No. GameUI text doesn't need click.
+            // But Mobile Controls needs click.
+            // CSS handles pointer-events. Don't overwrite unless necessary.
+            // Let's remove the pointerEvents line to respect CSS.
+        }
+    });
+
+    // Re-apply pointer-events from CSS (Cleanest way is to NOT touch it in JS)
 }
 
 const mainMenu = document.getElementById('mainMenu');
