@@ -101,14 +101,19 @@ function resizeCanvas() {
     // Mobile Safe Zone: Shrink canvas ONLY during gameplay to prevent thumb occlusion
     const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     // Use safe zone if mobile AND playing (disable for menu AND pause menu)
-    const useSafeZone = isMobile && (typeof gameState !== 'undefined' && gameState === 'PLAYING');
+    // EXCEPTION: If overlays (Win/Level/Loading) are active, use Full Screen
+    const hasOverlay = (typeof winScreen !== 'undefined' && winScreen.classList.contains('active')) ||
+        (typeof levelIndicator !== 'undefined' && levelIndicator.classList.contains('active')) ||
+        (typeof loadingScreen !== 'undefined' && loadingScreen.classList.contains('active'));
+
+    const useSafeZone = isMobile && (typeof gameState !== 'undefined' && gameState === 'PLAYING') && !hasOverlay;
 
     // Calculate Available Dimensions
     let availW = window.innerWidth;
     let availH = window.innerHeight;
 
     if (useSafeZone) {
-        availH = window.innerHeight * 0.75; // Reserve 25% at bottom for buttons
+        availH = window.innerHeight * 0.85; // Reserve 15% at bottom (User requested expansion)
         // Keep availW at 100% to fill sides if possible
     }
 
@@ -117,7 +122,7 @@ function resizeCanvas() {
 
     // Reset position logic
     if (useSafeZone) {
-        canvas.style.marginTop = '-50px'; // Visual Shift Up
+        canvas.style.marginTop = '-30px'; // Visual Shift Up (Less aggressive)
     } else {
         canvas.style.marginTop = '0';
     }
@@ -156,7 +161,7 @@ function resizeCanvas() {
         document.getElementById('settingsMenu'),
         document.getElementById('winScreen'),
         document.getElementById('levelIndicator'),
-        document.getElementById('mobileControls'),
+        // document.getElementById('mobileControls'), // REMOVED: Controls should be independent of game aspect ratio (viewport relative)
         document.getElementById('loadingScreen') // Loading too
     ];
 
@@ -823,6 +828,21 @@ function loop() {
     const ctrls = document.getElementById('mobileControls');
     if (ctrls && window.isMobileInput) {
         ctrls.style.display = (gameState === 'PLAYING') ? 'block' : 'none';
+    }
+
+    // Auto-Resize Trigger: Detect if Overlay State Changed (e.g. Win Screen appeared)
+    // This ensures Safe Zone turns OFF when an overlay blocks the game
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isMobile) {
+        const hasOverlay = (winScreen.classList.contains('active')) || (levelIndicator.classList.contains('active')) || (loadingScreen.classList.contains('active'));
+        // If Play+NoOverlay -> Safe Zone. If Menu/Pause/Overlay -> Full Screen
+        const expectedSafe = (gameState === 'PLAYING') && !hasOverlay;
+
+        if (typeof window.lastExpectedSafe === 'undefined') window.lastExpectedSafe = null;
+        if (expectedSafe !== window.lastExpectedSafe) {
+            window.lastExpectedSafe = expectedSafe;
+            resizeCanvas();
+        }
     }
 
     requestAnimationFrame(loop);

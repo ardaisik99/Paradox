@@ -571,19 +571,26 @@ input:checked+.slider:before {
 
 .chk-left {
     position: absolute;
-    bottom: -10px;
-    left: -45px;
+    bottom: 5px;
+    /* FINAL RESPONSIVE FIX: */
+    /* Mobile (400px): 10px (Safe, Visible at edge) */
+    /* PC (2000px): 200px (Comfortable, Inwards) */
+    /* NEVER goes off-screen (Negative). */
+    left: clamp(10px, calc(10px + (100vw - 400px) * 0.12), 200px);
     display: flex;
     gap: 15px;
     align-items: flex-end;
     z-index: 1005;
-    /* Ensure above everything */
 }
 
 .chk-right {
     position: absolute;
-    bottom: -10px;
-    right: -45px;
+    bottom: 5px;
+    /* FINAL RESPONSIVE FIX: */
+    /* Mobile (400px): 10px (Safe, Visible at edge) */
+    /* PC (2000px): 200px (Comfortable, Inwards) */
+    /* NEVER goes off-screen (Negative). */
+    right: clamp(10px, calc(10px + (100vw - 400px) * 0.12), 200px);
     display: flex;
     flex-direction: column;
     align-items: flex-end;
