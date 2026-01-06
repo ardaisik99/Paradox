@@ -97,9 +97,10 @@ const shadowCtx = shadowCanvas.getContext('2d');
 // --- HD & RESPONSIVE EKRAN AYARI ---
 // --- HD & RESPONSIVE EKRAN AYARI ---
 // --- HD & RESPONSIVE EKRAN AYARI ---
-function resizeCanvas() {
-    // Canvas Resize Safety: Prevent resizing during active gameplay loop
-    if (typeof gameState !== 'undefined' && gameState === 'PLAYING' && !document.hidden) return;
+// --- HD & RESPONSIVE EKRAN AYARI ---
+function resizeCanvas(force = false) {
+    // Canvas Resize Safety: Prevent resizing during active gameplay loop EXCEPT when forced (e.g. startGame)
+    if (!force && typeof gameState !== 'undefined' && gameState === 'PLAYING' && !document.hidden) return;
     // Optimization: Cap DPR to 1.5 on mobile to prevent lag (4K canvas is too heavy)
     const rawDpr = window.devicePixelRatio || 1;
     const dpr = (window.isMobileInput || /Mobi|Android/i.test(navigator.userAgent)) ? 1.0 : Math.min(rawDpr, 1.5);
@@ -634,7 +635,7 @@ function playSound(type) {
     } catch (e) { }
 }
 function toggleIngameMenu() { playSound('click'); if (gameState === 'PLAYING') { gameState = 'PAUSED'; ingameMenu.classList.add('active'); resizeCanvas(); } else if (gameState === 'PAUSED') resumeGame(); }
-function resumeGame() { playSound('click'); gameState = 'PLAYING'; ingameMenu.classList.remove('active'); resizeCanvas(); }
+function resumeGame() { playSound('click'); gameState = 'PLAYING'; ingameMenu.classList.remove('active'); resizeCanvas(true); }
 function goToMainMenu() {
     playSound('click');
     gameState = 'MENU';
@@ -659,7 +660,7 @@ function startGame() {
         document.documentElement.requestFullscreen().catch(() => { });
     }
 
-    playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); resizeCanvas();
+    playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); resizeCanvas(true);
 }
 
 function openSettings() { playSound('click'); document.getElementById('soundToggle').checked = soundEnabled; settingsMenu.classList.add('active'); if (gameState === 'MENU') mainMenu.classList.remove('active'); if (gameState === 'PAUSED') ingameMenu.classList.remove('active'); }
