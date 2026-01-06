@@ -145,8 +145,8 @@ function resizeCanvas() {
     // Internal Resolution
     canvas.width = w * dpr;
     canvas.height = h * dpr;
-    shadowCanvas.width = canvas.width;
-    shadowCanvas.height = canvas.height;
+    shadowCanvas.width = 800;
+    shadowCanvas.height = 450;
 
     // Logic Scale (Game is 800x450)
     const scale = (w * dpr) / 800;
@@ -754,12 +754,7 @@ function drawDarkness() {
     };
 
     shadowCtx.save();
-    // Re-apply the same scaling as the main context to match logic
-    // We calculated scaleFactor in resizeCanvas, but it's local.
-    // However, canvas.width/800 is the scale X.
-    let sX = canvas.width / 800;
-    let sY = canvas.height / 450;
-    shadowCtx.scale(sX, sY);
+    // No scaling needed, 1:1 map
 
     const entities = [player, ...clones];
     entities.forEach(e => {
