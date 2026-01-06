@@ -89,7 +89,7 @@ function setTheme(name) {
 }
 
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
 const shadowCanvas = document.createElement('canvas');
 const shadowCtx = shadowCanvas.getContext('2d');
 
@@ -233,6 +233,18 @@ let cloneCollisionEnabled = false;
 let soundEnabled = true;
 let darknessLevel = false;
 let invertedMap = false;
+
+// --- MOBILE OPTIMIZATION: HIDE CSS OVERLAYS ---
+if (window.isMobileInput || /Mobi|Android/i.test(navigator.userAgent)) {
+    // Wait for DOM to load if this runs too early, but usually main.js runs deferred.
+    // Better to put in initVisuals or check inside this block safer.
+    try {
+        const vign = document.querySelector('.vignette');
+        const scan = document.querySelector('.scanlines');
+        if (vign) vign.style.display = 'none';
+        if (scan) scan.style.display = 'none';
+    } catch (e) { }
+}
 
 let player, clones = [], platforms = [], buttons = [], doors = [], particles = [], goal = null;
 let movingPlatforms = [], levers = [], portals = [], texts = [], lasers = [];
