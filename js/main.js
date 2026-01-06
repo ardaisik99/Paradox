@@ -96,10 +96,13 @@ const shadowCtx = shadowCanvas.getContext('2d');
 
 // --- HD & RESPONSIVE EKRAN AYARI ---
 // --- HD & RESPONSIVE EKRAN AYARI ---
+// --- HD & RESPONSIVE EKRAN AYARI ---
 function resizeCanvas() {
+    // Canvas Resize Safety: Prevent resizing during active gameplay loop
+    if (typeof gameState !== 'undefined' && gameState === 'PLAYING' && !document.hidden) return;
     // Optimization: Cap DPR to 1.5 on mobile to prevent lag (4K canvas is too heavy)
     const rawDpr = window.devicePixelRatio || 1;
-    const dpr = Math.min(rawDpr, 1.5);
+    const dpr = (window.isMobileInput || /Mobi|Android/i.test(navigator.userAgent)) ? 1.0 : Math.min(rawDpr, 1.5);
 
 
     // Mobile Safe Zone: Shrink canvas ONLY during gameplay to prevent thumb occlusion
@@ -229,6 +232,7 @@ const TIME_STEP = 1000 / 60;
 let lastTime = 0;
 let accumulator = 0;
 let globalInput = { left: false, right: false, jump: false };
+const allEntities = [];
 
 // --- NAMESPACE & CONCEPTS ---
 // --- NAMESPACE & CONCEPTS ---
@@ -858,10 +862,19 @@ function resetLevel(full) {
 function checkRectCollision(r1, r2) { return (r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y); }
 
 function update() {
-    if (gameState !== 'PLAYING') return; // Allow update to process one last frame even if gameOver set? No. gameOver stops 'future' updates.
+    if (gameState !== 'PLAYING') return;
     if (gameOver) return;
 
-    particles.forEach((p, i) => { p.update(); if (p.life <= 0) particles.splice(i, 1); });
+    // 1. Particle System (Alloc-Free Backwards Loop)
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        if (particles[i].life <= 0) {
+            particles[i] = particles[particles.length - 1]; // Fast Swap-Remove
+            particles.pop();
+        }
+    }
+    // Hard Safety Limit
+    if (particles.length > 80) particles.length = 80;
 
     // Garbage Collector Optimization: Reuse Input Object
     globalInput.left = keys['ArrowLeft'] || keys['KeyA'];
@@ -874,17 +887,21 @@ function update() {
         globalInput.right = temp;
     }
 
-    const entities = [player, ...clones];
-    buttons.forEach(b => b.update(entities));
-    doors.forEach(d => d.update(buttons));
-    levers.forEach(l => l.update(entities));
-    if (goal) goal.update(buttons, levers);
-    movingPlatforms.forEach(mp => mp.update(buttons, levers, entities));
-    portals.forEach(p => p.update());
-    portals.forEach(p => p.update());
-    lasers.forEach(l => l.update(entities));
+    // Zero-Alloc Entity List
+    allEntities.length = 0;
+    allEntities.push(player);
+    for (let i = 0; i < clones.length; i++) allEntities.push(clones[i]);
 
-    clones.forEach(c => c.update(null, platforms, doors, movingPlatforms, portals, frameCount));
+    // Optimize Loops: Use 'for' instead of 'forEach'
+    for (let i = 0; i < buttons.length; i++) buttons[i].update(allEntities);
+    for (let i = 0; i < doors.length; i++) doors[i].update(buttons);
+    for (let i = 0; i < levers.length; i++) levers[i].update(allEntities);
+    if (goal) goal.update(buttons, levers);
+    for (let i = 0; i < movingPlatforms.length; i++) movingPlatforms[i].update(buttons, levers, allEntities);
+    for (let i = 0; i < portals.length; i++) portals[i].update();
+    for (let i = 0; i < lasers.length; i++) lasers[i].update(allEntities);
+
+    for (let i = 0; i < clones.length; i++) clones[i].update(null, platforms, doors, movingPlatforms, portals, frameCount);
     player.update(globalInput, platforms, doors, movingPlatforms, portals, frameCount);
     frameCount++;
 }
