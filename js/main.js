@@ -225,6 +225,11 @@ let movingPlatforms = [], levers = [], portals = [], texts = [], lasers = [];
 let atmosphericDust = []; let lightRays = [];
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+const TIME_STEP = 1000 / 60;
+let lastTime = 0;
+let accumulator = 0;
+let globalInput = { left: false, right: false, jump: false };
+
 // --- NAMESPACE & CONCEPTS ---
 // --- NAMESPACE & CONCEPTS ---
 let levelSequence = 0; // Global sequence counter for puzzle levels
@@ -857,12 +862,16 @@ function update() {
     if (gameOver) return;
 
     particles.forEach((p, i) => { p.update(); if (p.life <= 0) particles.splice(i, 1); });
-    const input = { left: keys['ArrowLeft'] || keys['KeyA'], right: keys['ArrowRight'] || keys['KeyD'], jump: keys['ArrowUp'] || keys['KeyW'] || keys['Space'] };
+
+    // Garbage Collector Optimization: Reuse Input Object
+    globalInput.left = keys['ArrowLeft'] || keys['KeyA'];
+    globalInput.right = keys['ArrowRight'] || keys['KeyD'];
+    globalInput.jump = keys['ArrowUp'] || keys['KeyW'] || keys['Space'];
 
     if (invertedMap) {
-        let temp = input.left;
-        input.left = input.right;
-        input.right = temp;
+        let temp = globalInput.left;
+        globalInput.left = globalInput.right;
+        globalInput.right = temp;
     }
 
     const entities = [player, ...clones];
@@ -876,7 +885,7 @@ function update() {
     lasers.forEach(l => l.update(entities));
 
     clones.forEach(c => c.update(null, platforms, doors, movingPlatforms, portals, frameCount));
-    player.update(input, platforms, doors, movingPlatforms, portals, frameCount);
+    player.update(globalInput, platforms, doors, movingPlatforms, portals, frameCount);
     frameCount++;
 }
 
@@ -903,8 +912,29 @@ function draw() {
     drawDarkness(); // Darkness Overlay
     drawPostProcess(); // Vignette ve Scanlines
 }
-function loop() {
-    update();
+function loop(timestamp) {
+    if (gameState !== 'PLAYING') {
+        if (gameState !== 'MENU' && gameState !== 'PAUSED') update();
+        draw();
+        // Manage Visibility
+        const ctrls = document.getElementById('mobileControls');
+        if (ctrls && window.isMobileInput) ctrls.style.display = (gameState === 'PLAYING') ? 'block' : 'none';
+
+        requestAnimationFrame(loop);
+        return;
+    }
+
+    if (!lastTime) lastTime = timestamp;
+    let deltaTime = timestamp - lastTime;
+    lastTime = timestamp;
+    if (deltaTime > 100) deltaTime = 100;
+
+    accumulator += deltaTime;
+    while (accumulator >= TIME_STEP) {
+        update();
+        accumulator -= TIME_STEP;
+    }
+
     draw();
 
     // Manage Visibility
