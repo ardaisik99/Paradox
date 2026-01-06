@@ -255,8 +255,10 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 // Previously 60Hz. User reported "Slow Motion" on high-refresh screens (implying game was tuned for 120Hz+).
 // Increasing Logic Rate to 120Hz to match expected speed.
 // Physics Time Step (Fixed)
-// Increased to 240Hz to force Faster Gameplay (User Request "Still Slow")
-const TIME_STEP = 1000 / 240;
+// Physics Time Step (Fixed)
+// Unified to 120Hz. 240Hz on mobile caused CPU stuttering.
+// 120Hz provides consistent speed and smooth gameplay on both PC and Mobile.
+const TIME_STEP = 1000 / 120;
 let lastTime = 0;
 let accumulator = 0;
 let globalInput = { left: false, right: false, jump: false };
