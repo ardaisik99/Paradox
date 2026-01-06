@@ -149,8 +149,10 @@ function resizeCanvas(force = false) {
     // Internal Resolution
     canvas.width = w * dpr;
     canvas.height = h * dpr;
-    shadowCanvas.width = 800;
-    shadowCanvas.height = 450;
+
+    // OPTIMIZATION: Shadow Canvas at half resolution for performance
+    shadowCanvas.width = 400; // Was 800
+    shadowCanvas.height = 225; // Was 450
 
     // Logic Scale (Game is 800x450)
     const scale = (w * dpr) / 800;
@@ -760,6 +762,7 @@ function drawDarkness() {
     if (!darknessLevel) return;
 
     // 1. Clear and Fill Shadow Canvas with Darkness
+    shadowCtx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
     shadowCtx.globalCompositeOperation = 'source-over';
     shadowCtx.fillStyle = '#000000'; // Pitch black
     shadowCtx.fillRect(0, 0, shadowCanvas.width, shadowCanvas.height);
@@ -767,19 +770,15 @@ function drawDarkness() {
     // 2. Punch Holes (Lights)
     shadowCtx.globalCompositeOperation = 'destination-out';
 
+    // SCALE DOWN: Logic is 800x450, Canvas is 400x225
+    shadowCtx.save();
+    shadowCtx.scale(0.5, 0.5);
+
     // Helper to draw light
     const drawLight = (entity) => {
         let x = entity.x + entity.width / 2;
         let y = entity.y + entity.height / 2;
-
-        // Scale coordinates for the shadow canvas (which matches internal resolution)
-        // Note: ctx is scaled by scaleFactor, but shadowCtx is raw pixels? 
-        // No, we need to match the transform.
-        // Easiest way: Apply same scale to shadowCtx.
     };
-
-    shadowCtx.save();
-    // No scaling needed, 1:1 map
 
     const entities = [player, ...clones];
     entities.forEach(e => {
@@ -814,7 +813,8 @@ function drawDarkness() {
     // 3. Draw Shadow onto Main Canvas
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to draw full screen overlay
-    ctx.drawImage(shadowCanvas, 0, 0);
+    // Scale UP to fit screen
+    ctx.drawImage(shadowCanvas, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 }
 
@@ -963,6 +963,8 @@ function loop(timestamp) {
     if (deltaTime > 100) deltaTime = 100;
 
     accumulator += deltaTime;
+    // OPTIMIZATION: Cap accumulator to prevent death spiral on low FPS (max 12 frames catchup)
+    if (accumulator > 200) accumulator = 200;
     while (accumulator >= TIME_STEP) {
         update();
         accumulator -= TIME_STEP;
@@ -1566,20 +1568,36 @@ class Player {
     }
 
     resolveMapCollisionX(plats, doors, movingPlats) {
-        let obs = [...plats];
-        doors.forEach(d => { if (d.getCurrentHeight() > 5) obs.push({ x: d.x, y: d.y, width: d.width, height: d.getCurrentHeight() }); });
-
-        // Static Objects
-        obs.forEach(p => {
-            if (checkRectCollision(this, p)) {
-                // We know we just moved X, so fix X.
-                let ox = (this.width + p.width) / 2 - Math.abs((this.x + this.width / 2) - (p.x + p.width / 2));
-                if (ox > 0) {
-                    if (this.x < p.x) this.x = p.x - this.width; else this.x = p.x + p.width;
-                    this.vx = 0;
+        // OPTIMIZATION: Clones replay history which is already valid against static geometry.
+        // We only check static plats if this is the REAL player.
+        if (!this.isClone) {
+            for (let i = 0; i < plats.length; i++) {
+                let p = plats[i];
+                if (checkRectCollision(this, p)) {
+                    let ox = (this.width + p.width) / 2 - Math.abs((this.x + this.width / 2) - (p.x + p.width / 2));
+                    if (ox > 0) {
+                        if (this.x < p.x) this.x = p.x - this.width; else this.x = p.x + p.width;
+                        this.vx = 0;
+                    }
                 }
             }
-        });
+        }
+
+        // Dynamic Objects: Doors (Can change state, so Clones MUST check this)
+        for (let i = 0; i < doors.length; i++) {
+            let d = doors[i];
+            let h = d.getCurrentHeight();
+            if (h > 5) {
+                let dRect = { x: d.x, y: d.y, width: d.width, height: h };
+                if (checkRectCollision(this, dRect)) {
+                    let ox = (this.width + dRect.width) / 2 - Math.abs((this.x + this.width / 2) - (dRect.x + dRect.width / 2));
+                    if (ox > 0) {
+                        if (this.x < dRect.x) this.x = dRect.x - this.width; else this.x = dRect.x + dRect.width;
+                        this.vx = 0;
+                    }
+                }
+            }
+        }
 
         // Moving Platforms (X)
         if (movingPlats) {
@@ -1615,19 +1633,35 @@ class Player {
     }
 
     resolveMapCollisionY(plats, doors, movingPlats) {
-        let obs = [...plats];
-        doors.forEach(d => { if (d.getCurrentHeight() > 5) obs.push({ x: d.x, y: d.y, width: d.width, height: d.getCurrentHeight() }); });
-
-        // Static
-        obs.forEach(p => {
-            if (checkRectCollision(this, p)) {
-                let oy = (this.height + p.height) / 2 - Math.abs((this.y + this.height / 2) - (p.y + p.height / 2));
-                if (oy > 0) {
-                    if (this.y < p.y) { this.y = p.y - this.height; this.vy = 0; this.isGrounded = true; }
-                    else { this.y = p.y + p.height; this.vy = 0; }
+        // OPTIMIZATION: Static Plats check only for Player
+        if (!this.isClone) {
+            for (let i = 0; i < plats.length; i++) {
+                let p = plats[i];
+                if (checkRectCollision(this, p)) {
+                    let oy = (this.height + p.height) / 2 - Math.abs((this.y + this.height / 2) - (p.y + p.height / 2));
+                    if (oy > 0) {
+                        if (this.y < p.y) { this.y = p.y - this.height; this.vy = 0; this.isGrounded = true; }
+                        else { this.y = p.y + p.height; this.vy = 0; }
+                    }
                 }
             }
-        });
+        }
+
+        // Doors
+        for (let i = 0; i < doors.length; i++) {
+            let d = doors[i];
+            let h = d.getCurrentHeight();
+            if (h > 5) {
+                let dRect = { x: d.x, y: d.y, width: d.width, height: h };
+                if (checkRectCollision(this, dRect)) {
+                    let oy = (this.height + dRect.height) / 2 - Math.abs((this.y + this.height / 2) - (dRect.y + dRect.height / 2));
+                    if (oy > 0) {
+                        if (this.y < dRect.y) { this.y = dRect.y - this.height; this.vy = 0; this.isGrounded = true; }
+                        else { this.y = dRect.y + dRect.height; this.vy = 0; }
+                    }
+                }
+            }
+        }
 
         // Moving Platforms (Y)
         if (movingPlats) {
