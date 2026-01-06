@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     checkMobile(); // Check for generic mobile device
     bindTouchEvents(); // Mobile Controls
     updateTexts();
+
+    // Yandex Requirement: Prevent Long Press Context Menu
+    window.addEventListener('contextmenu', (e) => { e.preventDefault(); }, { passive: false });
+
     loop();
 });
 
@@ -222,29 +226,78 @@ let atmosphericDust = []; let lightRays = [];
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 // --- NAMESPACE & CONCEPTS ---
+// --- NAMESPACE & CONCEPTS ---
 let levelSequence = 0; // Global sequence counter for puzzle levels
-let ysdk = null; // Yandex SDK Instance
+window.ysdk = null; // Yandex SDK Instance
+window.yandexPlayer = null; // Player Instance
 
 function initYandex() {
     if (typeof YaGames === 'undefined') return;
     YaGames.init().then(ysdk_instance => {
-        ysdk = ysdk_instance;
-        // Language
-        let lang = ysdk.environment.i18n.lang;
-        if (LANGS[lang]) {
-            currentLang = lang;
-            updateTexts();
-        }
+        window.ysdk = ysdk_instance;
 
-        // Mobile Check
+        // 1. Language Detection
+        try {
+            let lang = ysdk.environment.i18n.lang;
+            if (LANGS[lang]) {
+                currentLang = lang;
+                updateTexts();
+            }
+        } catch (e) { }
+
+        // 2. Cloud Save Synchronization
+        ysdk.getPlayer({ scopes: false }).then(_player => {
+            window.yandexPlayer = _player;
+            window.yandexPlayer.getData(['unlocked']).then(data => {
+                if (data.unlocked) {
+                    const cloudVal = parseInt(data.unlocked);
+                    // Sync: If Cloud has more progress, overwrite local
+                    if (cloudVal > unlockedLevels) {
+                        unlockedLevels = cloudVal;
+                        localStorage.setItem('paradox_unlocked', unlockedLevels);
+                        initLevelButtons();
+                    }
+                    // If Local has more (played offline), push to Cloud
+                    else if (unlockedLevels > cloudVal) {
+                        window.yandexPlayer.setData({ unlocked: unlockedLevels });
+                    }
+                }
+            });
+        }).catch(err => {
+            console.log('Yandex Player Init / Auth Info:', err);
+        });
+
+        // 3. Mobile Check
         if (ysdk.deviceInfo.isMobile()) {
-            document.getElementById('mobileControls').style.display = 'block';
+            // Already handled by checkMobile(), but double check logic?
+            // window.isMobileInput = true; 
+            // We rely on our unified checkMobile() function.
         }
 
-        // Notify Ready
+        // 4. Notify Ready
         ysdk.features.LoadingAPI.ready();
-    }).catch(err => console.error('YSDK Init Error:', err));
+
+    }).catch(err => {
+        console.error('YSDK Init Error:', err);
+    });
 }
+
+// Helper: Save Progress to Cloud
+window.saveGameProgress = function () {
+    localStorage.setItem('paradox_unlocked', unlockedLevels);
+    if (window.yandexPlayer) {
+        window.yandexPlayer.setData({ unlocked: unlockedLevels });
+    }
+};
+
+// Polling to ensure Unlocked Levels changes are synced (since we couldn't easily trace all call sites)
+let lastUnlockedForSync = unlockedLevels;
+setInterval(() => {
+    if (unlockedLevels !== lastUnlockedForSync) {
+        saveGameProgress();
+        lastUnlockedForSync = unlockedLevels;
+    }
+}, 2000);
 
 function bindTouchEvents() {
     const bindBtn = (id, k, callback) => {
@@ -591,7 +644,14 @@ function goToMainMenu() {
     resizeCanvas(); // Reset Scale (Full Screen for Menu)
 }
 function restartLevel() { playSound('click'); resetLevel(true); resumeGame(); }
-function startGame() { playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); resizeCanvas(); }
+function startGame() {
+    // Force Fullscreen on Mobile (Yandex Games Requirement)
+    if (window.isMobileInput && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => { });
+    }
+
+    playSound('click'); loadLevel(currentLevelIndex); gameState = 'PLAYING'; mainMenu.classList.remove('active'); gameUI.classList.add('visible'); winScreen.classList.remove('active'); resizeCanvas();
+}
 
 function openSettings() { playSound('click'); document.getElementById('soundToggle').checked = soundEnabled; settingsMenu.classList.add('active'); if (gameState === 'MENU') mainMenu.classList.remove('active'); if (gameState === 'PAUSED') ingameMenu.classList.remove('active'); }
 function closeSettings() { playSound('click'); settingsMenu.classList.remove('active'); if (gameState === 'MENU') mainMenu.classList.add('active'); else if (gameState === 'PAUSED') ingameMenu.classList.add('active'); }
@@ -602,8 +662,13 @@ function toggleCollision() { playSound('click'); cloneCollisionEnabled = !cloneC
 // --- EFEKTLER ---
 function initVisuals() {
     atmosphericDust = []; lightRays = [];
-    for (let i = 0; i < 60; i++) atmosphericDust.push(new DustParticle());
-    for (let i = 0; i < 6; i++) lightRays.push(new LightRay());
+    // Optimize for Mobile: Reduce counts significantly
+    const isMob = window.isMobileInput || (typeof navigator !== 'undefined' && navigator.userAgent && /Mobi|Android/i.test(navigator.userAgent));
+    const dustCount = isMob ? 10 : 60;
+    const rayCount = isMob ? 2 : 6;
+
+    for (let i = 0; i < dustCount; i++) atmosphericDust.push(new DustParticle());
+    for (let i = 0; i < rayCount; i++) lightRays.push(new LightRay());
 }
 class DustParticle {
     constructor() { this.reset(); this.x = Math.random() * 800; }
@@ -636,6 +701,9 @@ function drawBackgroundEffects() {
 
 // POST PROCESSING (Vignette + Scanlines)
 function drawPostProcess() {
+    // Mobile Optimization: SKIP expensive fillRect loop and gradients
+    if (window.isMobileInput) return;
+
     ctx.save();
     ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Hafif Scanlines
     for (let i = 0; i < 450; i += 4) { ctx.fillRect(0, i, 800, 2); }
@@ -848,16 +916,93 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
+// --- TV / KEYBOARD NAVIGATION ---
+let focusIndex = 0;
+let focusableElements = [];
+let isTVNavigationActive = false; // Disable visuals until Arrow Keys are used
+
+function refreshFocusables() {
+    let container = null;
+    if (mainMenu.classList.contains('active')) container = mainMenu;
+    else if (levelsMenu.classList.contains('active')) container = levelsMenu;
+    else if (ingameMenu.classList.contains('active')) container = ingameMenu;
+    else if (winScreen.classList.contains('active')) container = winScreen;
+    else if (settingsMenu.classList.contains('active')) container = settingsMenu;
+
+    if (container) {
+        focusableElements = Array.from(container.querySelectorAll('button, input, .level-btn'));
+        // Filter hidden
+        focusableElements = focusableElements.filter(el => el.offsetParent !== null);
+
+        focusIndex = 0;
+        // Don't auto-show visuals unless mode active
+        if (isTVNavigationActive) updateFocusVisuals();
+    } else {
+        focusableElements = [];
+    }
+}
+
+function updateFocusVisuals() {
+    document.querySelectorAll('.tv-focus').forEach(el => el.classList.remove('tv-focus'));
+
+    if (!isTVNavigationActive) return; // Exit if mouse mode
+
+    if (focusableElements[focusIndex]) {
+        focusableElements[focusIndex].classList.add('tv-focus');
+        focusableElements[focusIndex].focus(); // Native focus
+    }
+}
+
+// Input Mode Switching
+window.addEventListener('mousemove', () => {
+    if (isTVNavigationActive) {
+        isTVNavigationActive = false;
+        updateFocusVisuals();
+    }
+});
+window.addEventListener('touchstart', () => {
+    if (isTVNavigationActive) {
+        isTVNavigationActive = false;
+        updateFocusVisuals();
+    }
+});
+
+
+// Update focusables when menus change
+const observer = new MutationObserver(() => { setTimeout(refreshFocusables, 100); });
+observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+
 window.addEventListener('keydown', (e) => {
+    // GAMEPLAY
     if (gameState === 'PLAYING') {
         const key = e.key.toLowerCase();
         keys[e.key] = true; keys[e.code] = true;
 
-        // Allowed keys even during 'gameOver'
-        if (key === 'r') createCloneAndReset();
-
-        if (key === 'escape') toggleIngameMenu();
-        if (key === 'c') toggleCollision();
+        if (key === 'r' || key === 'enter') createCloneAndReset(); // TV Enter = Action (Clone)
+        if (key === 'escape' || key === 'backspace') toggleIngameMenu(); // TV Back
+        if (key === 'c' || key === 'arrowdown') toggleCollision(); // TV Down = Collision
+        // Jump is ArrowUp/Space (Standard)
+    }
+    // MENU NAVIGATION (TV)
+    else if (focusableElements.length > 0) {
+        const k = e.key;
+        if (k === 'ArrowRight' || k === 'ArrowDown') {
+            isTVNavigationActive = true; // Enable logic
+            focusIndex = (focusIndex + 1) % focusableElements.length;
+            updateFocusVisuals();
+            playSound('hover'); // Feedback
+        } else if (k === 'ArrowLeft' || k === 'ArrowUp') {
+            isTVNavigationActive = true; // Enable logic
+            focusIndex = (focusIndex - 1 + focusableElements.length) % focusableElements.length;
+            updateFocusVisuals();
+            playSound('hover');
+        } else if (k === 'Enter') {
+            if (focusableElements[focusIndex]) {
+                playSound('click');
+                focusableElements[focusIndex].click();
+            }
+        }
     }
 });
 window.addEventListener('keyup', (e) => { keys[e.key] = false; keys[e.code] = false; });

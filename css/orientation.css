@@ -1,0 +1,28 @@
+/* --- ORIENTATION WARNING (Yandex Games Req) --- */
+#orientationWarning {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #111;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    flex-direction: column;
+}
+
+/* Only show on Portrait Mobile Devices (Max Width 900px ensures Tablets in Landscape don't trigger if square-ish, but Tablets in Portrait will) */
+@media screen and (orientation: portrait) and (max-width: 900px) {
+    #orientationWarning {
+        display: flex;
+    }
+
+    /* Hide Game UI and Canvas to prevent mess */
+    #gameContainer {
+        display: none;
+    }
+}

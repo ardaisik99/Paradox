@@ -1,0 +1,8 @@
+/* --- TV NAVIGATION --- */
+.tv-focus {
+    outline: 3px solid #ffff00 !important;
+    transform: scale(1.1);
+    z-index: 9999;
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+    transition: all 0.1s ease;
+}
