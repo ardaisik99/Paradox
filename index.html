@@ -42,9 +42,7 @@
             <button id="btnMenuMobile" class="mob-btn top-right">☰</button>
         </div>
 
-        <div id="fpsCounter"
-            style="position: absolute; top: 10px; left: 10px; color: lime; font-family: monospace; font-size: 14px; z-index: 1000; pointer-events: none;">
-            FPS: 60</div>
+
         <div id="levelIndicator">LEVEL 1</div>
 
         <div id="gameUI">
@@ -70,10 +68,53 @@
             <button id="btnPlayMain" class="btn">PLAY</button>
             <button id="btnLevelsMain" class="btn">LEVELS</button>
             <button id="btnSettingsMain" class="btn">SETTINGS</button>
-            <button id="btnLanguage" class="btn"
-                style="width: 40px; height: 40px; padding: 5px; margin-top: 20px; background: transparent; border: none;">
-                <img src="assets/world_icon.png" alt="Language" style="width: 100%; height: 100%; object-fit: contain;">
-            </button>
+
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button id="btnLanguage" class="btn"
+                    style="width: 50px; height: 50px; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #666; display: flex; align-items: center; justify-content: center;">
+                    <img src="assets/world_icon.png" alt="Language"
+                        style="width: 100%; height: 100%; object-fit: contain;">
+                </button>
+                <button id="btnHelp" class="btn"
+                    style="width: 50px; height: 50px; padding: 0; background: rgba(0,0,0,0.5); border: 1px solid #666; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; font-family: 'Courier Prime', monospace;">?</button>
+            </div>
+        </div>
+
+        <div id="helpMenu" class="menu-screen">
+            <div class="menu-title" id="helpTitle">TUTORIAL</div>
+
+            <div class="help-content"
+                style="text-align: left; width: 85%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; background: rgba(0,0,0,0.6); padding: 20px; border: 1px solid #444; border-radius: 4px;">
+                <!-- Controls Section -->
+                <div class="help-section">
+                    <h3 id="helpControlsTitle"
+                        style="color: #fff; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 0; letter-spacing: 2px;">
+                        CONTROLS</h3>
+                    <div
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; color: #ccc; font-size: 14px;">
+                        <div id="helpMove">MOVE: <b>WASD / ARROWS</b></div>
+                        <div id="helpJump">JUMP: <b>SPACE / UP</b></div>
+                        <div id="helpClone">CLONE / RESET: <b>R / ENTER</b></div>
+                        <div id="helpAction">COLLISION: <b>C</b></div>
+                        <div id="helpMobileHint"
+                            style="grid-column: span 2; color: #888; font-size: 12px; margin-top: 5px; font-style: italic;">
+                            * Mobile uses touch controls</div>
+                    </div>
+                </div>
+
+                <!-- Mechanics Section -->
+                <div class="help-section">
+                    <h3 id="helpMechTitle"
+                        style="color: #fff; border-bottom: 1px solid #444; padding-bottom: 5px; letter-spacing: 2px;">
+                        MECHANICS</h3>
+                    <p id="helpMechDesc" style="font-size: 13px; color: #ccc; line-height: 1.5; margin: 5px 0 0 0;">
+                        Time is your tool. Press <b>R</b> to reset time and create a <b>Clone</b> that repeats your last
+                        actions. Use clones to hold buttons, activate levers, and solve paradoxes.
+                    </p>
+                </div>
+            </div>
+
+            <button id="btnCloseHelp" class="btn" style="margin-top: 25px;">BACK</button>
         </div>
 
         <div id="ingameMenu" class="menu-screen">
@@ -157,7 +198,7 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=7"></script>
+    <script src="js/main.js?v=10"></script>
 </body>
 
 </html>

@@ -24,14 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
 window.isMobileInput = false;
 
 function checkMobile() {
-    // Show controls if generic touch device logic passes
+    // Show controls ONLY if genuine mobile device (Touch + Agent)
+    // Avoid showing on Desktop with Touch functionality
     const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // TEMPORARY: Force enabled for PC Testing (User Request: "PC de de")
-    if (true || isTouch || isMobileDevice) {
-        window.isMobileInput = true;
-    }
+    window.isMobileInput = isMobileDevice && isTouch;
+    console.log("Mobile Input Mode:", window.isMobileInput);
 }
 
 const THEMES = {
@@ -177,6 +176,7 @@ function resizeCanvas(force = false) {
         // document.getElementById('ingameMenu'), // Custom Fullscreen
         document.getElementById('levelsMenu'),
         document.getElementById('settingsMenu'),
+        document.getElementById('helpMenu'),
         document.getElementById('winScreen'),
         document.getElementById('levelIndicator'),
         // document.getElementById('mobileControls'), // REMOVED: Controls should be independent of game aspect ratio (viewport relative)
@@ -307,10 +307,10 @@ function initYandex() {
         });
 
         // 3. Mobile Check
+        // 3. Mobile Check
         if (ysdk.deviceInfo.isMobile()) {
-            // Already handled by checkMobile(), but double check logic?
-            // window.isMobileInput = true; 
-            // We rely on our unified checkMobile() function.
+            window.isMobileInput = true;
+            console.log("Yandex Detected Mobile. Controls Enabled.");
         }
 
         // 4. Notify Ready
@@ -416,7 +416,11 @@ const LANGS = {
         concepts: {
             noir: { name: "NOIR", desc: "The Beginning" },
             white: { name: "BLANC", desc: "Inversion" }
-        }
+        },
+        tutorial: "TUTORIAL", controls: "CONTROLS", mechanics: "MECHANICS",
+        move: "MOVE", jump: "JUMP", clone: "CLONE / RESET", action: "COLLISION",
+        mobileHint: "* Mobile uses touch controls",
+        mechDesc: "Time is your tool. Press R to reset time and create a Clone that repeats your last actions. Use clones to hold buttons and solve paradoxes."
     },
     ru: {
         play: "ИГРАТЬ", levels: "УРОВНИ", settings: "НАСТРОЙКИ",
@@ -434,7 +438,11 @@ const LANGS = {
         concepts: {
             noir: { name: "НУАР", desc: "Начало" },
             white: { name: "БЛАНК", desc: "Инверсия" }
-        }
+        },
+        tutorial: "ОБУЧЕНИЕ", controls: "УПРАВЛЕНИЕ", mechanics: "МЕХАНИКА",
+        move: "ДВИЖЕНИЕ", jump: "ПРЫЖОК", clone: "КЛОН / СБРОС", action: "КОЛЛИЗИЯ",
+        mobileHint: "* На мобильном сенсорное управление",
+        mechDesc: "Время - твой инструмент. Нажми R, чтобы сбросить время и создать Клона. Используй клонов для решения парадоксов."
     },
     tr: {
         play: "OYNA", levels: "BÖLÜMLER", settings: "AYARLAR",
@@ -447,12 +455,16 @@ const LANGS = {
         rewind: "[R] GERİ SAR", menu: "[ESC] MENÜ",
         gameOver: "OYUN BİTTİ", completed: "TAMAMLANDI",
         msgOver: "Tüm Paradokslar Çözüldü!", msgWin: "Zaman çizgisi onarıldı.",
-        nextLevel: "Sıradaki Paradoks...",
-        limit: "KLON LİMİTİ DOLDU!",
+        limit: "KLON SINIRI!",
         concepts: {
             noir: { name: "NOIR", desc: "Başlangıç" },
             white: { name: "BEYAZ", desc: "Tersine" }
-        }
+        },
+        tutorial: "REHBER", controls: "KONTROLLER", mechanics: "MEKANİKLER",
+        move: "HAREKET", jump: "ZIPLAMA", clone: "KLON / SIFIRLA", action: "ÇARPIŞMA",
+        mobileHint: "* Mobilde dokunmatik kontroller kullanılır",
+        mechDesc: "Zaman senin aracın. R tuşuyla zamanı sıfırla ve son hareketlerini tekrarlayan bir Klon yarat. Klonları bulmacaları çözmek için kullan."
+
     }
 };
 
@@ -490,6 +502,23 @@ function updateTexts() {
     document.querySelector('#settingsMenu .menu-title').innerText = t.settings;
     document.querySelector('#settingsMenu .setting-row span').innerText = t.sound;
     document.getElementById('btnCloseSettings').innerText = t.close;
+
+    // Help / Tutorial
+    document.getElementById('helpTitle').innerText = t.tutorial;
+    document.getElementById('helpControlsTitle').innerText = t.controls;
+    document.getElementById('helpMechTitle').innerText = t.mechanics;
+    let kMove = 'WASD / ARROWS';
+    let kJump = 'SPACE / UP';
+    if (currentLang === 'tr') { kMove = 'WASD / OKLAR'; kJump = 'SPACE / YUKARI'; }
+    if (currentLang === 'ru') { kMove = 'WASD / СТРЕЛКИ'; kJump = 'ПРОБЕЛ / ВВЕРХ'; }
+
+    document.getElementById('helpMove').innerHTML = `${t.move}: <b>${kMove}</b>`;
+    document.getElementById('helpJump').innerHTML = `${t.jump}: <b>${kJump}</b>`;
+    document.getElementById('helpClone').innerHTML = `${t.clone}: <b>R / ENTER</b>`;
+    document.getElementById('helpAction').innerHTML = `${t.action}: <b>C</b>`;
+    document.getElementById('helpMobileHint').innerText = t.mobileHint;
+    document.getElementById('helpMechDesc').innerHTML = t.mechDesc;
+    document.getElementById('btnCloseHelp').innerText = t.back;
 
     // Win Screen
     document.getElementById('winTitle').innerText = t.completed;
@@ -532,6 +561,10 @@ function bindEvents() {
     document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
     document.getElementById('soundToggle').addEventListener('change', (e) => toggleSound(e.target.checked));
     document.getElementById('btnWinMain').addEventListener('click', goToMainMenu);
+
+    // Help
+    document.getElementById('btnHelp').addEventListener('click', () => { playSound('click'); openHelp(); });
+    document.getElementById('btnCloseHelp').addEventListener('click', () => { playSound('click'); closeHelp(); });
 }
 
 function initLevelButtons() {
@@ -566,6 +599,18 @@ function showLevelView(concept) {
     document.getElementById('levelSelectView').style.display = 'flex';
     document.getElementById('selectedConceptTitle').innerText = concept.name;
     renderLevelsForConcept(concept);
+}
+
+const helpMenu = document.getElementById('helpMenu');
+function openHelp() {
+    helpMenu.classList.add('active');
+    if (gameState === 'MENU') mainMenu.classList.remove('active');
+    if (gameState === 'PAUSED') ingameMenu.classList.remove('active');
+}
+function closeHelp() {
+    helpMenu.classList.remove('active');
+    if (gameState === 'MENU') mainMenu.classList.add('active');
+    else if (gameState === 'PAUSED') ingameMenu.classList.add('active');
 }
 
 function renderConcepts() {
@@ -650,7 +695,8 @@ function renderLevelsForConcept(concept) {
 }
 
 function playSound(type) {
-    if (!soundEnabled || audioCtx.state === 'suspended') { if (type === 'click') audioCtx.resume(); else return; }
+    if (!soundEnabled) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     try {
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
@@ -1045,16 +1091,7 @@ function loop(timestamp) {
         }
     }
 
-    // FPS Calculation (Visual Only)
-    if (!window.fpsTime) { window.fpsTime = timestamp; window.fpsCount = 0; }
-    window.fpsCount++;
-    if (timestamp - window.fpsTime >= 1000) {
-        const fps = window.fpsCount;
-        const fpsEl = document.getElementById('fpsCounter');
-        if (fpsEl) fpsEl.innerText = `FPS: ${fps}`;
-        window.fpsCount = 0;
-        window.fpsTime = timestamp;
-    }
+
 
     requestAnimationFrame(loop);
 }
