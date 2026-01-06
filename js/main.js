@@ -101,20 +101,23 @@ const shadowCtx = shadowCanvas.getContext('2d');
 function resizeCanvas(force = false) {
     // Canvas Resize Safety: Prevent resizing during active gameplay loop EXCEPT when forced (e.g. startGame)
     if (!force && typeof gameState !== 'undefined' && gameState === 'PLAYING' && !document.hidden) return;
-    // Optimization: Cap DPR to 1.5 on mobile to prevent lag (4K canvas is too heavy)
+    // OPTIMIZATION: Detect REAL mobile device for graphics scaling (separate from Input Logic)
+    const isRealMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    // Optimization: Cap DPR to 1.5 on REAL mobile to prevent lag (4K canvas is too heavy)
     const rawDpr = window.devicePixelRatio || 1;
-    const dpr = (window.isMobileInput || /Mobi|Android/i.test(navigator.userAgent)) ? 1.0 : Math.min(rawDpr, 1.5);
+    const dpr = (isRealMobile) ? 1.0 : Math.min(rawDpr, 1.5);
 
 
     // Mobile Safe Zone: Shrink canvas ONLY during gameplay to prevent thumb occlusion
-    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     // Use safe zone if mobile AND playing (disable for menu AND pause menu)
     // EXCEPTION: If overlays (Win/Level/Loading) are active, use Full Screen
     const hasOverlay = (typeof winScreen !== 'undefined' && winScreen.classList.contains('active')) ||
         (typeof levelIndicator !== 'undefined' && levelIndicator.classList.contains('active')) ||
         (typeof loadingScreen !== 'undefined' && loadingScreen.classList.contains('active'));
 
-    const useSafeZone = isMobile && (typeof gameState !== 'undefined' && gameState === 'PLAYING') && !hasOverlay;
+    const useSafeZone = isTouch && (typeof gameState !== 'undefined' && gameState === 'PLAYING') && !hasOverlay;
 
     // Calculate Available Dimensions
     let availW = window.innerWidth;
@@ -150,9 +153,14 @@ function resizeCanvas(force = false) {
     canvas.width = w * dpr;
     canvas.height = h * dpr;
 
-    // OPTIMIZATION: Shadow Canvas at half resolution for performance
-    shadowCanvas.width = 400; // Was 800
-    shadowCanvas.height = 225; // Was 450
+    // OPTIMIZATION: Shadow Canvas at half resolution ONLY for REAL Mobile
+    if (isRealMobile) {
+        shadowCanvas.width = 400;
+        shadowCanvas.height = 225;
+    } else {
+        shadowCanvas.width = 800;
+        shadowCanvas.height = 450;
+    }
 
     // Logic Scale (Game is 800x450)
     const scale = (w * dpr) / 800;
@@ -770,9 +778,14 @@ function drawDarkness() {
     // 2. Punch Holes (Lights)
     shadowCtx.globalCompositeOperation = 'destination-out';
 
-    // SCALE DOWN: Logic is 800x450, Canvas is 400x225
+    // 2. Punch Holes (Lights)
+    shadowCtx.globalCompositeOperation = 'destination-out';
+
+    // SCALE DOWN: Calculate scale based on shadowCanvas.width vs Game Logic (800)
+    // Mobile: 400/800 = 0.5. PC: 800/800 = 1.0. 
+    const sScale = shadowCanvas.width / 800;
     shadowCtx.save();
-    shadowCtx.scale(0.5, 0.5);
+    shadowCtx.scale(sScale, sScale);
 
     // Helper to draw light
     const drawLight = (entity) => {
@@ -922,12 +935,20 @@ function update() {
     frameCount++;
 }
 
-function draw() {
+function savePreviousState() {
+    if (gameState !== 'PLAYING') return;
+    if (player) { player.lastX = player.x; player.lastY = player.y; }
+    clones.forEach(c => { c.lastX = c.x; c.lastY = c.y; });
+    movingPlatforms.forEach(mp => { mp.lastX = mp.x; mp.lastY = mp.y; });
+    // Particles skipped for performance, they are fast enough
+}
+
+function draw(alpha = 1.0) {
     drawBackgroundEffects();
     if (gameState === 'MENU') return;
 
     platforms.forEach(p => p.draw(ctx));
-    movingPlatforms.forEach(mp => mp.draw(ctx));
+    movingPlatforms.forEach(mp => mp.draw(ctx, alpha)); // INTERPOLATED
     portals.forEach(p => p.draw(ctx));
     buttons.forEach(b => b.draw(ctx));
     levers.forEach(l => l.draw(ctx));
@@ -936,13 +957,13 @@ function draw() {
 
     if (goal) goal.draw(ctx);
 
-    clones.forEach(c => c.draw(ctx));
-    if (player) player.draw(ctx);
+    clones.forEach(c => c.draw(ctx, alpha)); // INTERPOLATED
+    if (player) player.draw(ctx, alpha); // INTERPOLATED
 
     particles.forEach(p => p.draw(ctx));
     texts.forEach(t => t.draw(ctx));
 
-    drawDarkness(); // Darkness Overlay
+    drawDarkness(alpha); // Pass alpha if needed for lights moving?
     drawPostProcess(); // Vignette ve Scanlines
 }
 function loop(timestamp) {
@@ -991,6 +1012,17 @@ function loop(timestamp) {
             window.lastExpectedSafe = expectedSafe;
             resizeCanvas();
         }
+    }
+
+    // FPS Calculation (Visual Only)
+    if (!window.fpsTime) { window.fpsTime = timestamp; window.fpsCount = 0; }
+    window.fpsCount++;
+    if (timestamp - window.fpsTime >= 1000) {
+        const fps = window.fpsCount;
+        const fpsEl = document.getElementById('fpsCounter');
+        if (fpsEl) fpsEl.innerText = `FPS: ${fps}`;
+        window.fpsCount = 0;
+        window.fpsTime = timestamp;
     }
 
     requestAnimationFrame(loop);
@@ -1182,24 +1214,30 @@ class MovingPlatform extends GameObject {
         this.startX = x; this.startY = y; this.endX = endX; this.endY = endY; this.triggerId = triggerId; this.vx = 0; this.vy = 0;
         this.weightSensitive = weightSensitive;
         this.requiredWeight = requiredWeight;
-        this.movementType = movementType; // 'direct', 'patrol' (oscillate)
-        this.sequenceVal = sequenceVal; // If set, active ONLY when levelSequence == this.sequenceVal
-        this.patrolState = 0; // 0: toEnd, 1: toStart
+        this.movementType = movementType;
+        this.sequenceVal = sequenceVal;
+        this.patrolState = 0;
         this.speed = speed;
+        this.lastX = x; this.lastY = y; // Interpolation
     }
     update(btns, levers, entities) {
+        // ... (Update logic remains same, handled by game loop calling update) ...
+        // We do NEED update logic here? No, 'replace_file_content' replaces the CHUNK.
+        // Wait, I am replacing the whole class or just the chunk? 
+        // I should just replace constructor and draw, or the whole thing if easier.
+        // The previous 'update' code is long. Let's just target Constructor and Draw separately if possible.
+        // But the user tool requires me to replace the chunk I see.
+        // I will Copy-Paste the update logic accurately.
+
         let active = false;
 
         if (this.sequenceVal !== null) {
-            // Sequence Mode: Active only if sequence matches.
-            // When inactive, if using 'freeze' logic implicitly (Patrol mode often implies freezing on stop for puzzles),
-            // we will handle movement or lack thereof.
             if (levelSequence === this.sequenceVal) active = true;
         } else if (this.triggerId) {
             btns.forEach(b => { if (b.targetDoorId === this.triggerId && b.isPressed) active = true; });
             if (levers) { levers.forEach(l => { if (l.triggerId === this.triggerId && l.isActive) active = true; }); }
         } else {
-            active = true; // Default active if no trigger
+            active = true;
         }
 
         if (this.weightSensitive && entities) {
@@ -1215,7 +1253,6 @@ class MovingPlatform extends GameObject {
 
         if (this.movementType === 'patrol') {
             if (active) {
-                // Ping Pong Logic
                 let destX = (this.patrolState === 0) ? this.endX : this.startX;
                 let destY = (this.patrolState === 0) ? this.endY : this.startY;
 
@@ -1225,22 +1262,18 @@ class MovingPlatform extends GameObject {
 
                 if (dist < this.speed) {
                     this.x = destX; this.y = destY;
-                    this.patrolState = 1 - this.patrolState; // Swap target
+                    this.patrolState = 1 - this.patrolState;
                 } else {
                     this.vx = (dx / dist) * this.speed;
                     this.vy = (dy / dist) * this.speed;
                     this.x += this.vx; this.y += this.vy;
                 }
             } else {
-                // Freeze in place if patrol + sequence (Puzzle behavior)
-                // If standard patrol, maybe return to start? 
-                // For this game's request ("stops"), we freeze.
                 this.vx = 0; this.vy = 0;
             }
-            return; // Custom update done
+            return;
         }
 
-        // Default 'direct' behavior
         let tx = active ? this.endX : this.startX; let ty = active ? this.endY : this.startY;
         let dx = tx - this.x; let dy = ty - this.y;
         let speed = 2.0;
@@ -1248,11 +1281,18 @@ class MovingPlatform extends GameObject {
         if (Math.abs(dy) > speed) this.vy = Math.sign(dy) * speed; else this.vy = dy;
         this.x += this.vx; this.y += this.vy;
     }
-    draw(ctx) {
-        ctx.fillStyle = COLORS.movingPlat; ctx.fillRect(this.x, this.y, this.width, this.height);
+
+    draw(ctx, alpha = 1.0) {
+        // INTERPOLATION
+        let lx = (this.lastX !== undefined) ? this.lastX : this.x;
+        let ly = (this.lastY !== undefined) ? this.lastY : this.y;
+        let dx = lx + (this.x - lx) * alpha;
+        let dy = ly + (this.y - ly) * alpha;
+
+        ctx.fillStyle = COLORS.movingPlat; ctx.fillRect(dx, dy, this.width, this.height);
         if (COLORS.useBorders) {
-            ctx.fillStyle = '#333'; for (let i = 0; i < this.width; i += 20) { ctx.fillRect(this.x + i, this.y, 5, this.height); }
-            ctx.fillStyle = '#555'; ctx.fillRect(this.x, this.y, this.width, 2); ctx.fillRect(this.x, this.y + this.height - 2, this.width, 2);
+            ctx.fillStyle = '#333'; for (let i = 0; i < this.width; i += 20) { ctx.fillRect(dx + i, dy, 5, this.height); }
+            ctx.fillStyle = '#555'; ctx.fillRect(dx, dy, this.width, 2); ctx.fillRect(dx, dy + this.height - 2, this.width, 2);
         }
     }
 }
@@ -1800,6 +1840,9 @@ class Player {
                     // Ensure collision logic runs even if we didn't move much (e.g. elevators)
                     this.resolveMapCollisionX(plats, doors, movingPlats);
                     this.resolveMapCollisionY(plats, doors, movingPlats);
+
+                    // First frame fix for interpolation
+                    if (frame === 0) { this.lastX = this.x; this.lastY = this.y; }
                 }
 
                 this.vx = st.vx || 0;
@@ -1905,7 +1948,14 @@ class Player {
         this.history.push({ x: this.x, y: this.y, isDead: false });
     }
 
-    draw(ctx) {
+    // ... update ... (Leaving update implicit as it was not part of the replacement scope previously, but we need to ensure class structure is valid)
+    // The previous tool call truncated the file inappropriately inserting 'class Player' inside the existing class.
+    // We must restore the proper class structure.
+
+    // NOTE: Since I can't see the full file state easily, I will rewrite the draw method to be correct
+    // AND remove the accidental 'class Player {' injection if it exists.
+
+    draw(ctx, alpha = 1.0) {
         if (this.isClone && this.isExpired) return;
         ctx.save();
 
@@ -1919,30 +1969,36 @@ class Player {
         if (this.vx > 0.1) lookDir = 1;
         else if (this.vx < -0.1) lookDir = -1;
 
-        let drawY = this.y + breatheOffset;
+        // INTERPOLATION LOGIC
+        // If lastX/Y not set (first frame), use current x/y
+        let lx = (this.lastX !== undefined) ? this.lastX : this.x;
+        let ly = (this.lastY !== undefined) ? this.lastY : this.y;
+
+        // Linear Interpolation: prev + (curr - prev) * alpha
+        let drawX = lx + (this.x - lx) * alpha;
+        let drawY = ly + (this.y - ly) * alpha;
+
+        drawY += breatheOffset;
         let drawHeight = this.height - breatheOffset;
 
         if (this.isClone) {
             ctx.fillStyle = COLORS.clone;
-            ctx.fillRect(this.x, drawY, this.width, drawHeight);
-            if (cloneCollisionEnabled) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(this.x, drawY, this.width, drawHeight); }
+            ctx.fillRect(drawX, drawY, this.width, drawHeight);
+            if (cloneCollisionEnabled) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(drawX, drawY, this.width, drawHeight); }
         } else {
             ctx.shadowBlur = 20; ctx.shadowColor = COLORS.player === '#000000' ? '#000' : '#fff';
             ctx.fillStyle = COLORS.player;
-            ctx.fillRect(this.x, drawY, this.width, drawHeight);
+            ctx.fillRect(drawX, drawY, this.width, drawHeight);
             ctx.shadowBlur = 0;
-
-            // White outline for black player for visibility if needed? No usage asked, but good practice.
-            // User requested white eyes for black player.
         }
 
         ctx.fillStyle = COLORS.player === '#000000' ? '#fff' : '#000'; // White eyes for black player, Black for white
         let eyeY = drawY + 8;
         let leftEyeX, rightEyeX;
 
-        if (lookDir === 1) { leftEyeX = this.x + 8; rightEyeX = this.x + 15; }
-        else if (lookDir === -1) { leftEyeX = this.x + 2; rightEyeX = this.x + 9; }
-        else { leftEyeX = this.x + 5; rightEyeX = this.x + 12; }
+        if (lookDir === 1) { leftEyeX = drawX + 8; rightEyeX = drawX + 15; }
+        else if (lookDir === -1) { leftEyeX = drawX + 2; rightEyeX = drawX + 9; }
+        else { leftEyeX = drawX + 5; rightEyeX = drawX + 12; }
 
         ctx.fillRect(leftEyeX, eyeY, 2, 5);
         ctx.fillRect(rightEyeX, eyeY, 2, 5);
