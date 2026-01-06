@@ -239,11 +239,14 @@ let movingPlatforms = [], levers = [], portals = [], texts = [], lasers = [];
 let atmosphericDust = []; let lightRays = [];
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-const TIME_STEP = 1000 / 60;
+// Physics Time Step (Fixed)
+// Previously 60Hz. User reported "Slow Motion" on high-refresh screens (implying game was tuned for 120Hz+).
+// Increasing Logic Rate to 120Hz to match expected speed.
+const TIME_STEP = 1000 / 120;
 let lastTime = 0;
 let accumulator = 0;
 let globalInput = { left: false, right: false, jump: false };
-const allEntities = [];
+const allEntities = []; // Zero-Alloc Buffer
 
 // --- NAMESPACE & CONCEPTS ---
 // --- NAMESPACE & CONCEPTS ---
