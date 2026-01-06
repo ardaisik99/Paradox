@@ -174,7 +174,7 @@ function resizeCanvas(force = false) {
     const uiElements = [
         document.getElementById('gameUI'),
         document.getElementById('mainMenu'),
-        document.getElementById('ingameMenu'),
+        // document.getElementById('ingameMenu'), // Custom Fullscreen
         document.getElementById('levelsMenu'),
         document.getElementById('settingsMenu'),
         document.getElementById('winScreen'),
@@ -1015,7 +1015,19 @@ function loop(timestamp) {
     // Manage Visibility
     const ctrls = document.getElementById('mobileControls');
     if (ctrls && window.isMobileInput) {
-        ctrls.style.display = (gameState === 'PLAYING') ? 'block' : 'none';
+        const loading = document.getElementById('loadingScreen');
+        const winScr = document.getElementById('winScreen');
+        // Check Loading
+        const loadingActive = (loading && loading.style.display !== 'none');
+        // Check Win Screen
+        const winActive = (winScr && winScr.classList.contains('active'));
+
+        // Hide if: Not Playing OR Loading OR Win Screen OR GameOver flag
+        if (gameState === 'PLAYING' && !loadingActive && !winActive && !gameOver) {
+            ctrls.style.display = 'block';
+        } else {
+            ctrls.style.display = 'none';
+        }
     }
 
     // Auto-Resize Trigger: Detect if Overlay State Changed (e.g. Win Screen appeared)
@@ -1099,9 +1111,7 @@ window.addEventListener('touchstart', () => {
 });
 
 
-// Update focusables when menus change
-const observer = new MutationObserver(() => { setTimeout(refreshFocusables, 100); });
-observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+// TV Observer Removed
 
 
 window.addEventListener('keydown', (e) => {
@@ -1116,25 +1126,7 @@ window.addEventListener('keydown', (e) => {
         // Jump is ArrowUp/Space (Standard)
     }
     // MENU NAVIGATION (TV)
-    else if (focusableElements.length > 0) {
-        const k = e.key;
-        if (k === 'ArrowRight' || k === 'ArrowDown') {
-            isTVNavigationActive = true; // Enable logic
-            focusIndex = (focusIndex + 1) % focusableElements.length;
-            updateFocusVisuals();
-            playSound('hover'); // Feedback
-        } else if (k === 'ArrowLeft' || k === 'ArrowUp') {
-            isTVNavigationActive = true; // Enable logic
-            focusIndex = (focusIndex - 1 + focusableElements.length) % focusableElements.length;
-            updateFocusVisuals();
-            playSound('hover');
-        } else if (k === 'Enter') {
-            if (focusableElements[focusIndex]) {
-                playSound('click');
-                focusableElements[focusIndex].click();
-            }
-        }
-    }
+    // TV Navigation Removed
 });
 window.addEventListener('keyup', (e) => { keys[e.key] = false; keys[e.code] = false; });
 
