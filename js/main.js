@@ -1,3 +1,18 @@
+
+// --- Mobile performance: camera culling helper ---
+function isVisible(obj, camera, canvas) {
+  if (!obj) return false;
+  const x = obj.x ?? 0, y = obj.y ?? 0;
+  const w = obj.w ?? obj.width ?? 0;
+  const h = obj.h ?? obj.height ?? 0;
+  const cx = camera?.x ?? 0;
+  const cy = camera?.y ?? 0;
+  const cw = canvas?.width ?? 0;
+  const ch = canvas?.height ?? 0;
+  return (x + w > cx && x < cx + cw && y + h > cy && y < cy + ch);
+}
+// --- end helper ---
+
 document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     initLevelButtons();
@@ -102,7 +117,7 @@ function resizeCanvas() {
     if (typeof gameState !== 'undefined' && gameState === 'PLAYING' && !document.hidden) return;
     // Optimization: Cap DPR to 1.5 on mobile to prevent lag (4K canvas is too heavy)
     const rawDpr = window.devicePixelRatio || 1;
-    const dpr = (window.isMobileInput || /Mobi|Android/i.test(navigator.userAgent)) ? 1.0 : Math.min(rawDpr, 1.5);
+    const dpr = (window.isMobileInput || /Mobi|Android/i.test(navigator.userAgent)) ? 1.0 : Math.min(rawDpr, 1.0);
 
 
     // Mobile Safe Zone: Shrink canvas ONLY during gameplay to prevent thumb occlusion
@@ -301,10 +316,8 @@ window.saveGameProgress = function () {
 
 // Polling to ensure Unlocked Levels changes are synced (since we couldn't easily trace all call sites)
 let lastUnlockedForSync = unlockedLevels;
-setInterval(() => {
-    if (unlockedLevels !== lastUnlockedForSync) {
-        saveGameProgress();
-        lastUnlockedForSync = unlockedLevels;
+// setInterval removed for mobile performance
+lastUnlockedForSync = unlockedLevels;
     }
 }, 2000);
 
@@ -910,21 +923,61 @@ function draw() {
     drawBackgroundEffects();
     if (gameState === 'MENU') return;
 
-    platforms.forEach(p => p.draw(ctx));
-    movingPlatforms.forEach(mp => mp.draw(ctx));
-    portals.forEach(p => p.draw(ctx));
-    buttons.forEach(b => b.draw(ctx));
-    levers.forEach(l => l.draw(ctx));
-    lasers.forEach(l => l.draw(ctx));
-    doors.forEach(d => d.draw(ctx));
+    for (let i = 0; i < platforms.length; i++) {
+  const p = platforms[i];
+  if (typeof camera !== 'undefined' && !isVisible(p, camera, canvas)) continue;
+  p.draw(ctx);
+}
+    for (let i = 0; i < movingPlatforms.length; i++) {
+  const mp = movingPlatforms[i];
+  if (typeof camera !== 'undefined' && !isVisible(mp, camera, canvas)) continue;
+  mp.draw(ctx);
+}
+    for (let i = 0; i < portals.length; i++) {
+  const p = portals[i];
+  if (typeof camera !== 'undefined' && !isVisible(p, camera, canvas)) continue;
+  p.draw(ctx);
+}
+    for (let i = 0; i < buttons.length; i++) {
+  const b = buttons[i];
+  if (typeof camera !== 'undefined' && !isVisible(b, camera, canvas)) continue;
+  b.draw(ctx);
+}
+    for (let i = 0; i < levers.length; i++) {
+  const l = levers[i];
+  if (typeof camera !== 'undefined' && !isVisible(l, camera, canvas)) continue;
+  l.draw(ctx);
+}
+    for (let i = 0; i < lasers.length; i++) {
+  const l = lasers[i];
+  if (typeof camera !== 'undefined' && !isVisible(l, camera, canvas)) continue;
+  l.draw(ctx);
+}
+    for (let i = 0; i < doors.length; i++) {
+  const d = doors[i];
+  if (typeof camera !== 'undefined' && !isVisible(d, camera, canvas)) continue;
+  d.draw(ctx);
+}
 
     if (goal) goal.draw(ctx);
 
-    clones.forEach(c => c.draw(ctx));
+    for (let i = 0; i < clones.length; i++) {
+  const c = clones[i];
+  if (typeof camera !== 'undefined' && !isVisible(c, camera, canvas)) continue;
+  c.draw(ctx);
+}
     if (player) player.draw(ctx);
 
-    particles.forEach(p => p.draw(ctx));
-    texts.forEach(t => t.draw(ctx));
+    for (let i = 0; i < particles.length; i++) {
+  const p = particles[i];
+  if (typeof camera !== 'undefined' && !isVisible(p, camera, canvas)) continue;
+  p.draw(ctx);
+}
+    for (let i = 0; i < texts.length; i++) {
+  const t = texts[i];
+  if (typeof camera !== 'undefined' && !isVisible(t, camera, canvas)) continue;
+  t.draw(ctx);
+}
 
     drawDarkness(); // Darkness Overlay
     drawPostProcess(); // Vignette ve Scanlines
