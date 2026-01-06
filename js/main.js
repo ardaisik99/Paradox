@@ -660,6 +660,8 @@ function toggleSound(enabled) { soundEnabled = enabled; playSound('click'); }
 function toggleCollision() { playSound('click'); cloneCollisionEnabled = !cloneCollisionEnabled; collisionTextUI.innerText = cloneCollisionEnabled ? LANGS[currentLang].collisionOn : LANGS[currentLang].collisionOff; collisionTextUI.style.color = cloneCollisionEnabled ? '#fff' : '#888'; }
 
 // --- EFEKTLER ---
+let lightSpriteCanvas = null;
+
 function initVisuals() {
     atmosphericDust = []; lightRays = [];
     // Optimize for Mobile: Reduce counts significantly
@@ -669,6 +671,19 @@ function initVisuals() {
 
     for (let i = 0; i < dustCount; i++) atmosphericDust.push(new DustParticle());
     for (let i = 0; i < rayCount; i++) lightRays.push(new LightRay());
+
+    // Pre-render Light Sprite (Performance Fix)
+    if (!lightSpriteCanvas) {
+        lightSpriteCanvas = document.createElement('canvas');
+        lightSpriteCanvas.width = 256; lightSpriteCanvas.height = 256;
+        const lctx = lightSpriteCanvas.getContext('2d');
+        const g = lctx.createRadialGradient(128, 128, 30, 128, 128, 128);
+        g.addColorStop(0, 'rgba(0,0,0,1)');
+        g.addColorStop(0.6, 'rgba(0,0,0,0.8)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        lctx.fillStyle = g;
+        lctx.beginPath(); lctx.arc(128, 128, 128, 0, Math.PI * 2); lctx.fill();
+    }
 }
 class DustParticle {
     constructor() { this.reset(); this.x = Math.random() * 800; }
@@ -751,17 +766,22 @@ function drawDarkness() {
         if (!e.isExpired) {
             let cx = e.x + e.width / 2;
             let cy = e.y + e.height / 2;
-            let r = 110; // Increased Light Radius
+            let r = 110;
 
-            let g = shadowCtx.createRadialGradient(cx, cy, 30, cx, cy, r);
-            g.addColorStop(0, 'rgba(0,0,0,1)'); // Remove fully at center
-            g.addColorStop(0.6, 'rgba(0,0,0,0.8)'); // Soft mid
-            g.addColorStop(1, 'rgba(0,0,0,0)'); // Soft edge
-
-            shadowCtx.fillStyle = g;
-            shadowCtx.beginPath();
-            shadowCtx.arc(cx, cy, r, 0, Math.PI * 2);
-            shadowCtx.fill();
+            if (lightSpriteCanvas) {
+                // High Performance Blit
+                shadowCtx.drawImage(lightSpriteCanvas, cx - r, cy - r, r * 2, r * 2);
+            } else {
+                // Fallback (Should not happen)
+                let g = shadowCtx.createRadialGradient(cx, cy, 30, cx, cy, r);
+                g.addColorStop(0, 'rgba(0,0,0,1)');
+                g.addColorStop(0.6, 'rgba(0,0,0,0.8)');
+                g.addColorStop(1, 'rgba(0,0,0,0)');
+                shadowCtx.fillStyle = g;
+                shadowCtx.beginPath();
+                shadowCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                shadowCtx.fill();
+            }
         }
     });
 
